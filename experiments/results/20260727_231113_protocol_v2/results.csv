@@ -1,0 +1,5 @@
+protocol,git_commit,shots_per_class,n_train_examples,seed,model,steps_run,hit_step_cap,best_val_acc,best_val_step,test_acc,n_params,dead_unit_frac,active_units,overlap_same,overlap_diff,train_seconds
+v2,9e7874f,60,600,0,dense_baseline,150,1,0.9164,150,0.9245,206922,,84.1,0.8739,0.8157,4.1
+v2,9e7874f,60,600,0,kwta_sparse,150,1,0.891,150,0.8973,206922,0.5,26.0,0.8085,0.7039,5.1
+v2,9e7874f,300,3000,0,dense_baseline,150,1,0.9438,150,0.9495,206922,,76.9,0.8611,0.7653,3.0
+v2,9e7874f,300,3000,0,kwta_sparse,150,1,0.9014,150,0.9145,206922,0.4773,26.0,0.7879,0.6869,5.0

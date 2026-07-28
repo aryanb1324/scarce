@@ -195,6 +195,53 @@ Report sign consistency across seeds explicitly.* Three seeds can support a
 conclusion when the comparison is paired and every seed agrees in sign; the same
 three seeds support nothing when reported unpaired.
 
+### 2026-07-28 — A mechanism can work perfectly and still not pay
+
+Protocol v2's two diagnostics disagreed, and the disagreement was the result.
+kWTA's code separation was 2.24x the dense baseline's at 600 labels, decaying
+monotonically to nothing by 30,000 — the hypothesis's mechanistic prediction,
+confirmed. Meanwhile 44–49% of its units were permanently dead. It bought better
+codes with half the network, and the two effects cancelled to "no difference."
+
+Accuracy alone would have read as "sparsity does nothing." With both diagnostics
+it reads as "sparsity does exactly what it claims and the implementation charges
+too much for it," which names the next experiment instead of ending the line of
+inquiry.
+
+**The rule.** *Measure the mechanism's benefit AND its cost, separately, in the
+same run.* A null accuracy result is only interpretable when you can see which
+side of that ledger moved. Every mechanism from here gets both: what it buys, and
+what it spends (capacity, compute, parameters, or steps).
+
+### 2026-07-28 — The baseline was converging on the same solution by itself
+
+The dense net's active-unit count fell 77.3 → 45.9 (of 128) as labels went 600 →
+48,000, and its code separation rose 0.057 → 0.260, overtaking kWTA's by the
+largest budget. Given enough data the baseline *discovers* the sparse, separated
+code that kWTA imposes by construction.
+
+**Why it matters.** It reframes the whole project. A brain-inspired mechanism
+that hard-codes structure is a **prior**, and a prior only earns its place where
+data is too scarce to learn that structure — which is precisely the regime this
+project targets, so this is encouraging rather than deflating. But it also sets
+the bar: the mechanism must be cheaper than learning the structure, or it loses
+to just using more data.
+
+**How to apply.** For every proposed mechanism, ask first: does the baseline
+already learn this given enough data? If yes, measure the crossover point — that
+is the mechanism's actual region of usefulness, and the honest claim.
+
+### 2026-07-28 — Do not read p-values off three seeds
+
+v2's paired tests gave p = 0.024 for a −0.19 pt effect at 6,000 labels (tiny,
+uninteresting, "significant") and p = 0.14 for a −1.58 pt effect at 600 labels
+(large, decision-relevant, "not significant"). With n = 3 the sd estimate is so
+unstable that the p-value tracks luck in the spread rather than effect size.
+
+**The rule.** *Treat n = 3 as a direction check, not a significance test.* Use
+sign consistency and effect magnitude to decide what to run next; use 5+ seeds
+before a number goes in a conclusion, and more where the decision hinges on it.
+
 ### 2026-07-27 — A mechanism needs a metric of its own, not just accuracy
 
 kWTA's stated hypothesis is that sparse codes reduce interference between

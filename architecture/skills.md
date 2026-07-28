@@ -123,6 +123,29 @@ and boost chronically-losing units' *ranking* score — never the value that pas
 through — in train mode only. `experiments/train_v2.py` measures the dead fraction
 via forward hooks; run it before concluding anything about a masking mechanism.
 
+### kWTA — the v1 predictions, now measured (protocol v2, commit 9e7874f)
+
+Both predictions above were confirmed quantitatively, so treat them as evidence
+rather than as reasoning:
+
+- **Dead units: 44–49%** across every data budget, stable rather than transient.
+  The ratchet is real and it is the module's dominant cost.
+- **Pattern separation works.** Same-class minus different-class Jaccard overlap
+  of the penultimate code, kWTA relative to dense: 2.24x at 600 labels, 1.21x at
+  3,000, 1.07x at 6,000, 0.99x at 30,000, 0.88x at 48,000. Monotonic, and largest
+  exactly where data is scarcest.
+- **Effective sparsity is below k, and drifts.** The FC layer selects k = 26 units
+  but only ~21.6 were nonzero at the largest budget — `topk` is selecting zeros,
+  as the test-on-`randn` note below predicts.
+
+So the mechanism is sound and the implementation overcharges for it. `kwta_v2.py`
+makes the two candidate causes (competition axis, duty-cycle boosting)
+independently switchable at **matched total sparsity** — channel-wise keeps
+k*C channels at each of H*W positions, which is exactly the k*C*H*W the global
+rule keeps — so an accuracy difference between arms cannot be explained by one
+arm simply being less sparse. Always check that kind of matching before
+attributing an effect to a mechanism.
+
 ### Unit tests on `randn` can hide activation-dependent behavior
 
 `tests/test_kwta.py` feeds `torch.randn`, which has no zeros, so the "exactly k
