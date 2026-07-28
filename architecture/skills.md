@@ -146,6 +146,45 @@ rule keeps — so an accuracy difference between arms cannot be explained by one
 arm simply being less sparse. Always check that kind of matching before
 attributing an effect to a mechanism.
 
+### kWTA — RESOLVED: the competition axis is the mechanism that pays (Stage 1)
+
+600 labels, 5 seeds, paired, total sparsity held identical across arms:
+
+| arm | Δ vs dense | p | separation | dead |
+|---|---|---|---|---|
+| `kwta_channel` | **+1.43** | 0.0003 | 0.181 | 43.5% |
+| `kwta_global` (v1 module) | −1.58 | 0.0124 | 0.133 | 46.8% |
+| `kwta_channel` + boost | −8.61 | 0.0078 | 0.177 | 41.5% |
+| `kwta_global` + boost | −7.62 | 0.196 | 0.157 | 43.0% |
+
+At 3,000 labels `kwta_channel` is +0.19 (n.s.) — the effect is confined to the
+low-data regime, which is how a prior should behave. Data multiplier: dense needs
+**1.78×** the labels to match it at 600.
+
+**Use `dim="channel"` for any conv-layer competition mechanism.** Real lateral
+inhibition — among feature detectors sharing a receptive field — is what pays.
+Global top-k over flattened channel×space is spatial saliency masking and it
+actively loses. This is now measured, not argued.
+
+### Duty-cycle boosting as implemented is harmful — probably train/eval mismatch
+
+Boosting hit both of its mechanical targets (dead units down, separation up) and
+cost 7.6–8.6 points anyway, with seed spreads of 10–26 points against 0.3–0.8
+unboosted. That instability signature points at train/eval inconsistency: boosting
+applies only in `train()` mode, so the winner set during training is chosen from
+boosted scores while evaluation uses raw activations, and with the exponent
+clamped at 3 the ranking can be distorted up to 20×. The network is then scored on
+a representation it was never trained to produce, and best-on-validation selection
+cannot rescue it because every checkpoint shares the mismatch.
+
+`experiments/diagnose_boost.py` measures the train/eval winner-set agreement
+directly rather than assuming this. Before reviving boosting, run it; if agreement
+falls with beta, retry at beta 0.1–0.25 or anneal beta → 0 so the modes converge.
+
+**General rule:** any mechanism that behaves differently in `train()` and `eval()`
+needs its train/eval agreement measured, not assumed. That asymmetry is invisible
+in the loss curve and shows up only as unexplained variance.
+
 ### Unit tests on `randn` can hide activation-dependent behavior
 
 `tests/test_kwta.py` feeds `torch.randn`, which has no zeros, so the "exactly k

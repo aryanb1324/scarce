@@ -1,0 +1,6 @@
+protocol,git_commit,arm,dim,boost,shots_per_class,n_train_examples,seed,steps_run,hit_step_cap,best_val_acc,best_val_step,test_acc,n_params,dead_unit_frac,dead_by_layer,active_units,overlap_same,overlap_diff,separation,train_seconds
+stage1,e2f99ea,dense,-,0.0,60,600,0,150,1,0.9164,150,0.9245,206922,,,84.1,0.8739,0.8157,0.0582,2.8
+stage1,e2f99ea,kwta_global,global,0.0,60,600,0,150,1,0.891,150,0.8973,206922,0.5,"{""conv1"": 0.0, ""conv2"": 0.062, ""fc"": 0.672}",26.0,0.8085,0.7039,0.1045,4.0
+stage1,e2f99ea,kwta_global_boost,global,1.0,60,600,0,150,1,0.737,150,0.7386,206922,0.4659,"{""conv1"": 0.0, ""conv2"": 0.062, ""fc"": 0.625}",26.0,0.7263,0.6056,0.1207,4.1
+stage1,e2f99ea,kwta_channel,channel,0.0,60,600,0,150,1,0.9072,150,0.9099,206922,0.5341,"{""conv1"": 0.0, ""conv2"": 0.25, ""fc"": 0.672}",26.0,0.7405,0.5911,0.1493,3.5
+stage1,e2f99ea,kwta_channel_boost,channel,1.0,60,600,0,150,1,0.6734,50,0.6912,206922,0.483,"{""conv1"": 0.0, ""conv2"": 0.062, ""fc"": 0.648}",26.0,0.7908,0.6606,0.1302,3.5

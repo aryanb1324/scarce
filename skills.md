@@ -213,6 +213,44 @@ same run.* A null accuracy result is only interpretable when you can see which
 side of that ledger moved. Every mechanism from here gets both: what it buys, and
 what it spends (capacity, compute, parameters, or steps).
 
+### 2026-07-28 — An aggregate metric hid WHERE the problem was, and that changed the diagnosis
+
+The v2 dead-unit number was reported as one figure: 44–49% of units. It read as
+network-wide capacity collapse, and the pre-registered rule said to fix that
+before judging the mechanism. Stage 1 added a per-layer breakdown and the picture
+inverted: **94–99% of the dead units are in the FC layer** (56–63% of its 128
+units), while conv1 sits at 0–2.5% and conv2 at 3–13%. The aggregate looked
+alarming only because FC holds 128 of the 176 counted units.
+
+That reframing mattered, because `dim` only changes the conv blocks — for a 2-D
+input both competition rules are identical — so the axis change could not have
+touched the layer where nearly all the dead units live, yet it is what produced
+the +1.43. Dead units were never the binding constraint.
+
+**The rule.** *Any diagnostic aggregated over structurally different components
+gets reported per component.* A single number weighted by component size will be
+dominated by the biggest one and will point at the wrong cause.
+
+### 2026-07-28 — Following a pre-registered rule that turns out to be wrong is the point
+
+The registered rule was "dead > 30% → fix duty-cycle boosting before judging the
+idea." It was followed. Boosting did reduce dead units (46.8% → 43.0%) and did
+raise separation (0.133 → 0.157) — and it cost 7.6 points of accuracy, with a
+25.8-point spread across seeds. The rule's premise was falsified by executing it.
+
+Had the rule been quietly dropped after seeing that channel-wise already worked,
+the project would have kept "boosting should help" as an untested belief.
+
+**The rule.** *Run the pre-registered branch even when a different arm has already
+made it look unnecessary.* Its value is in what it rules out, and a mechanism that
+achieves its stated mechanical goal while hurting the outcome is a specific,
+reusable finding — not a wasted run.
+
+**Corollary — read variance, not just means.** The boosted arms' seed spreads
+(10–26 points, against 0.3–0.8 unboosted) were the diagnostic signal. Smooth
+degradation and wild instability have different causes; instability of that shape
+points at a train/eval inconsistency rather than a worse-but-working mechanism.
+
 ### 2026-07-28 — The baseline was converging on the same solution by itself
 
 The dense net's active-unit count fell 77.3 → 45.9 (of 128) as labels went 600 →

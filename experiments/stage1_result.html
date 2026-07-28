@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AryaNet — Stage 1: the competition axis was the whole story</title>
+<style>
+  :root { color-scheme: light; }
+  .viz-root {
+    color-scheme: light;
+    --surface-1:#fcfcfb; --plane:#f9f9f7;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --pos:#2a78d6; --neg:#e34948;
+    --seq-1:#86b6ef; --seq-2:#3987e5; --seq-3:#184f95;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:#1a1a19; --plane:#0d0d0d;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --pos:#3987e5; --neg:#e66767;
+      --seq-1:#184f95; --seq-2:#2a78d6; --seq-3:#86b6ef;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:#1a1a19; --plane:#0d0d0d;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --pos:#3987e5; --neg:#e66767;
+    --seq-1:#184f95; --seq-2:#2a78d6; --seq-3:#86b6ef;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--plane); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .viz-root { background:var(--plane); color:var(--text-primary); padding:28px 22px 40px; max-width:1080px; margin:0 auto; }
+  h1 { font-size:20px; font-weight:600; margin:0 0 4px; letter-spacing:-0.01em; }
+  .sub { color:var(--text-secondary); font-size:13.5px; margin:0 0 22px; line-height:1.5; max-width:80ch; }
+  .kpi { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
+  .tile { background:var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:14px 16px; flex:1 1 210px; }
+  .tile .lab { font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+  .tile .val { font-size:34px; font-weight:600; line-height:1.05; }
+  .tile .val.hero { font-size:48px; color:var(--pos); }
+  .tile .note { font-size:12px; color:var(--text-secondary); margin-top:5px; line-height:1.4; }
+  .panel { background:var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:18px 18px 10px; margin-bottom:16px; }
+  .panel h2 { font-size:14.5px; font-weight:600; margin:0 0 2px; }
+  .panel .cap { font-size:12.5px; color:var(--text-secondary); margin:0 0 10px; line-height:1.45; max-width:94ch; }
+  .legend { display:flex; gap:18px; align-items:center; margin:0 0 4px 0; font-size:12.5px; color:var(--text-secondary); flex-wrap:wrap; }
+  .legend .key { display:inline-flex; align-items:center; gap:7px; }
+  .legend .swatch { width:14px; height:10px; border-radius:2px; display:inline-block; }
+  .legend .dotk { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  svg { display:block; width:100%; height:auto; overflow:visible; }
+  .tick { font-size:11px; fill:var(--text-muted); font-variant-numeric:tabular-nums; }
+  .armlab { font-size:12px; fill:var(--text-secondary); }
+  .armlab.win { font-weight:600; fill:var(--text-primary); }
+  .dlabel { font-size:11.5px; font-weight:600; fill:var(--text-secondary); font-variant-numeric:tabular-nums; }
+  .axtitle { font-size:11.5px; fill:var(--text-muted); }
+  #tip { position:fixed; pointer-events:none; opacity:0; transition:opacity .1s; background:var(--surface-1);
+         border:1px solid var(--border); border-radius:8px; padding:9px 11px; font-size:12px; color:var(--text-primary);
+         box-shadow:0 4px 16px rgba(0,0,0,.13); z-index:50; line-height:1.55; white-space:nowrap; }
+  #tip .r { display:flex; justify-content:space-between; gap:16px; font-variant-numeric:tabular-nums; }
+  table { border-collapse:collapse; width:100%; font-size:12.5px; font-variant-numeric:tabular-nums; }
+  th,td { text-align:right; padding:7px 9px; border-bottom:1px solid var(--grid); }
+  th:first-child, td:first-child { text-align:left; }
+  th { color:var(--text-muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; }
+  summary { cursor:pointer; font-size:12.5px; color:var(--text-secondary); padding:8px 0; }
+  .verdict { background:var(--surface-1); border:1px solid var(--border); border-left:3px solid var(--pos);
+             border-radius:10px; padding:15px 17px; font-size:13.5px; line-height:1.6; color:var(--text-secondary); }
+  .verdict b { color:var(--text-primary); font-weight:600; }
+  .toggle { position:absolute; top:22px; right:22px; background:var(--surface-1); border:1px solid var(--border);
+            color:var(--text-secondary); border-radius:7px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; }
+  .wrap { position:relative; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root">
+<div class="wrap">
+  <button class="toggle" id="tt">Theme</button>
+  <h1>Stage 1 — the competition axis was the whole story</h1>
+  <p class="sub">Same frozen architecture, same protocol, same total sparsity. The only change is that kWTA now
+     competes among the 16 channels sharing each receptive field, instead of once across all 12,544 channel×space
+     units. 600 labels, 5 seeds, paired per seed.</p>
+
+  <div class="kpi">
+    <div class="tile">
+      <div class="lab">kwta_channel vs dense @ 600 labels</div>
+      <div class="val hero">+1.43</div>
+      <div class="note">percentage points. All five seeds positive, spread 0.26. t = 12.2, p = 0.0003.</div>
+    </div>
+    <div class="tile">
+      <div class="lab">Data multiplier</div>
+      <div class="val">1.78×</div>
+      <div class="note">The dense baseline needs ~1,070 labels to reach what this reaches with 600.</div>
+    </div>
+    <div class="tile">
+      <div class="lab">Dead units living in the FC layer</div>
+      <div class="val">94%</div>
+      <div class="note">Not spread across the network. The previous round's "half the net is dead" framing was misleading.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Paired delta vs dense, by arm — 600 labels</h2>
+    <p class="cap">Bars are the mean of five per-seed differences; dots are the individual seeds. Only the axis change
+       helps, and it helps consistently. Duty-cycle boosting is catastrophic in both axes, and wildly unstable —
+       spreads of 10 and 26 points across seeds, against 0.3–0.8 for the unboosted arms.</p>
+    <div class="legend">
+      <span class="key"><span class="swatch" style="background:var(--pos)"></span>beats dense</span>
+      <span class="key"><span class="swatch" style="background:var(--neg)"></span>loses to dense</span>
+      <span class="key"><span class="dotk" style="background:var(--text-muted)"></span>individual seed</span>
+    </div>
+    <svg id="pa" viewBox="0 0 900 260" role="img" aria-label="Paired delta versus dense by arm at 600 labels"></svg>
+  </div>
+
+  <div class="panel">
+    <h2>Where the dead units actually live — kwta_channel, 600 labels</h2>
+    <p class="cap">The aggregate 43.5% looked like network-wide capacity collapse. It is almost entirely the fully
+       connected layer, which holds 128 of the 176 counted units. The convolutional layers — the ones the axis change
+       touches — were never in trouble. (kwta_global is similar: 0.0% / 5.6% / 63.0%.) This matters: since a 2-D input
+       makes both axes identical, the axis change cannot have fixed the FC layer, so dead units were not what was
+       holding the mechanism back.</p>
+    <svg id="pb" viewBox="0 0 900 200" role="img" aria-label="Dead unit fraction by layer"></svg>
+  </div>
+
+  <div class="panel">
+    <details><summary>Table view — both budgets, all arms</summary><table id="tbl"></table></details>
+  </div>
+
+  <div class="verdict">
+    <b>What this changes.</b> The mechanism that pays is real lateral inhibition among feature detectors sharing a
+    receptive field — not sparsity as such, and not recovered capacity. Total sparsity was held identical between the
+    two axes, so nothing here is explained by one arm simply keeping more units. And the effect is confined to the
+    smallest budget (+1.43 at 600 labels, +0.19 and not significant at 3,000), which is how a <em>prior</em> is
+    supposed to behave: it earns its place only where there is too little data to learn the structure. <b>The next run
+    tests exactly that</b> — sweeping k down to 10 shots per class. If the interpretation is right the advantage must
+    grow as labels get scarcer; if it peaks at 600 it was a local effect and should not be generalized.
+  </div>
+</div>
+</div>
+<div id="tip"></div>
+
+<script>
+const ARMS=[
+ {a:'kwta_channel',       m:+1.43, s:[+1.11,+1.67,+1.43,+1.71,+1.24], p:'0.0003', sep:0.181, dead:43.5, m2:+0.19, p2:'0.395'},
+ {a:'kwta_global',        m:-1.58, s:[-2.68,-0.38,-1.69,-1.66,-1.50], p:'0.0124', sep:0.133, dead:46.8, m2:-0.38, p2:'0.053'},
+ {a:'kwta_global_boost',  m:-7.62, s:[-0.96,-2.37,-7.03,-26.79,-0.95],p:'0.196',  sep:0.157, dead:43.0, m2:-2.22, p2:'0.032'},
+ {a:'kwta_channel_boost', m:-8.61, s:[-3.85,-8.55,-9.95,-6.49,-14.23],p:'0.0078', sep:0.177, dead:41.5, m2:-7.66, p2:'0.014'},
+];
+const LAYERS=[{n:'conv1 (16 ch)',v:2.5},{n:'conv2 (32 ch)',v:12.5},{n:'fc (128 units)',v:56.4}];
+const C=k=>getComputedStyle(document.getElementById('root')).getPropertyValue(k).trim();
+const NS='http://www.w3.org/2000/svg';
+const el=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const tip=document.getElementById('tip');
+function showTip(ev,h){tip.innerHTML=h;tip.style.opacity=1;const r=tip.getBoundingClientRect();
+  let x=ev.clientX+14,y=ev.clientY-r.height-12;
+  if(x+r.width>innerWidth-8)x=ev.clientX-r.width-14; if(y<8)y=ev.clientY+16;
+  tip.style.left=x+'px';tip.style.top=y+'px';}
+const hideTip=()=>tip.style.opacity=0;
+
+function hbar(x0,x1,y,h,r){ // rounded at the data end (x1), square at the baseline (x0)
+  const rr=Math.min(r,Math.abs(x1-x0));
+  return x1>x0
+    ? `M${x0},${y} L${x1-rr},${y} Q${x1},${y} ${x1},${y+rr} L${x1},${y+h-rr} Q${x1},${y+h} ${x1-rr},${y+h} L${x0},${y+h} Z`
+    : `M${x0},${y} L${x1+rr},${y} Q${x1},${y} ${x1},${y+rr} L${x1},${y+h-rr} Q${x1},${y+h} ${x1+rr},${y+h} L${x0},${y+h} Z`;
+}
+
+function drawA(){
+  const s=document.getElementById('pa'); s.innerHTML='';
+  const W=900,H=260,L=178,R=34,T=10,B=46,pw=W-L-R,ph=H-T-B;
+  const xmin=-15,xmax=3, X=v=>L+(v-xmin)/(xmax-xmin)*pw;
+  const rowH=ph/ARMS.length, BH=22;
+
+  for(let v=-15;v<=3;v+=3){
+    s.appendChild(el('line',{x1:X(v),x2:X(v),y1:T,y2:T+ph,stroke:v===0?C('--axis'):C('--grid'),'stroke-width':1}));
+    const t=el('text',{x:X(v),y:T+ph+18,'text-anchor':'middle',class:'tick'});
+    t.textContent=(v>0?'+':(v<0?'−':''))+Math.abs(v); s.appendChild(t);
+  }
+
+  ARMS.forEach((d,i)=>{
+    const y=T+i*rowH+(rowH-BH)/2, col=d.m>0?C('--pos'):C('--neg');
+    s.appendChild(el('path',{d:hbar(X(0),X(d.m),y,BH,4),fill:col}));
+    d.s.forEach(v=>{
+      if(v<xmin){ // explicit out-of-range marker — never a silent clip
+        const cx=X(xmin)+7;
+        s.appendChild(el('path',{d:`M${cx},${y+BH/2} l7,-5 l0,10 Z`,fill:C('--text-muted')}));
+        const t=el('text',{x:cx+12,y:y+BH/2+4,class:'dlabel'});
+        t.setAttribute('fill',C('--text-muted')); t.textContent='−26.8'; s.appendChild(t);
+        return;
+      }
+      s.appendChild(el('circle',{cx:X(v),cy:y+BH/2,r:5,fill:C('--surface-1')}));
+      s.appendChild(el('circle',{cx:X(v),cy:y+BH/2,r:3.2,fill:C('--text-secondary'),opacity:.85}));
+    });
+    const lab=el('text',{x:L-14,y:y+BH/2+4,'text-anchor':'end',class:'armlab'+(d.m>0?' win':'')});
+    lab.textContent=d.a; s.appendChild(lab);
+    const val=el('text',{x:d.m>0?X(d.m)+11:X(d.m)-11,y:y+BH/2+4,
+      'text-anchor':d.m>0?'start':'end',class:'dlabel'});
+    if(d.m>0) val.setAttribute('fill',C('--text-primary'));
+    val.textContent=(d.m>0?'+':'−')+Math.abs(d.m).toFixed(2); s.appendChild(val);
+
+    const hit=el('rect',{x:L,y:T+i*rowH,width:pw,height:rowH,fill:'transparent',style:'cursor:pointer'});
+    hit.addEventListener('mousemove',e=>showTip(e,
+      `<b>${d.a}</b><br>
+       <div class="r"><span>@600 labels</span><span><b>${d.m>0?'+':'−'}${Math.abs(d.m).toFixed(2)} pts</b> (p=${d.p})</span></div>
+       <div class="r"><span>@3,000 labels</span><span>${d.m2>0?'+':'−'}${Math.abs(d.m2).toFixed(2)} pts (p=${d.p2})</span></div>
+       <div class="r"><span>per seed</span><span>${d.s.map(v=>(v>0?'+':'−')+Math.abs(v).toFixed(2)).join(' · ')}</span></div>
+       <div class="r"><span>separation / dead</span><span>${d.sep.toFixed(3)} / ${d.dead.toFixed(1)}%</span></div>`));
+    hit.addEventListener('mouseleave',hideTip); s.appendChild(hit);
+  });
+  const ax=el('text',{x:L+pw/2,y:H-6,'text-anchor':'middle',class:'axtitle'});
+  ax.textContent='paired Δ test accuracy vs dense (percentage points)'; s.appendChild(ax);
+}
+
+function drawB(){
+  const s=document.getElementById('pb'); s.innerHTML='';
+  const W=900,H=200,L=178,R=34,T=8,B=46,pw=W-L-R,ph=H-T-B;
+  const X=v=>L+v/70*pw, rowH=ph/LAYERS.length, BH=22;
+  const cols=[C('--seq-1'),C('--seq-2'),C('--seq-3')];
+
+  for(let v=0;v<=70;v+=10){
+    s.appendChild(el('line',{x1:X(v),x2:X(v),y1:T,y2:T+ph,stroke:v===0?C('--axis'):C('--grid'),'stroke-width':1}));
+    const t=el('text',{x:X(v),y:T+ph+18,'text-anchor':'middle',class:'tick'});
+    t.textContent=v+'%'; s.appendChild(t);
+  }
+  LAYERS.forEach((d,i)=>{
+    const y=T+i*rowH+(rowH-BH)/2;
+    s.appendChild(el('path',{d:hbar(X(0),X(d.v),y,BH,4),fill:cols[i]}));
+    const lab=el('text',{x:L-14,y:y+BH/2+4,'text-anchor':'end',class:'armlab'}); lab.textContent=d.n; s.appendChild(lab);
+    const val=el('text',{x:X(d.v)+11,y:y+BH/2+4,class:'dlabel'}); val.textContent=d.v.toFixed(1)+'%'; s.appendChild(val);
+  });
+  const ax=el('text',{x:L+pw/2,y:H-6,'text-anchor':'middle',class:'axtitle'});
+  ax.textContent='units that never win kWTA across a full validation pass'; s.appendChild(ax);
+}
+
+(function(){
+  let h='<thead><tr><th>Arm</th><th>Δ @600</th><th>p</th><th>Δ @3,000</th><th>p</th>'
+       +'<th>separation</th><th>dead</th><th>per-seed Δ @600</th></tr></thead><tbody>';
+  ARMS.forEach(d=>{h+=`<tr><td>${d.a}</td><td><b>${d.m>0?'+':'−'}${Math.abs(d.m).toFixed(2)}</b></td>`
+    +`<td>${d.p}</td><td>${d.m2>0?'+':'−'}${Math.abs(d.m2).toFixed(2)}</td><td>${d.p2}</td>`
+    +`<td>${d.sep.toFixed(3)}</td><td>${d.dead.toFixed(1)}%</td>`
+    +`<td>${d.s.map(v=>(v>0?'+':'−')+Math.abs(v).toFixed(2)).join(', ')}</td></tr>`;});
+  h+=`<tr><td>dense (reference)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0.060</td><td>—</td><td>92.91% / 96.90% acc</td></tr>`;
+  document.getElementById('tbl').innerHTML=h+'</tbody>';
+})();
+
+function draw(){drawA();drawB();}
+document.getElementById('tt').addEventListener('click',()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const dark=cur?cur==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  requestAnimationFrame(draw);
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>requestAnimationFrame(draw));
+draw();
+</script>
+</body>
+</html>

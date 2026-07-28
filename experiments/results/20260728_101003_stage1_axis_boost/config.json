@@ -1,0 +1,30 @@
+{
+  "protocol": "stage1",
+  "git_commit": "e2f99ea-dirty",
+  "arms": [
+    "dense",
+    "kwta_global",
+    "kwta_global_boost",
+    "kwta_channel",
+    "kwta_channel_boost"
+  ],
+  "shots_per_class": [
+    60,
+    300
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "max_steps": 4000,
+  "eval_every": 100,
+  "patience": 12,
+  "batch_size": 64,
+  "lr": 0.001,
+  "selection": "best-on-validation",
+  "device": "cpu",
+  "quick": false
+}
