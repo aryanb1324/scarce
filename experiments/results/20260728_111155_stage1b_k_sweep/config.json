@@ -1,0 +1,40 @@
+{
+  "protocol": "stage1b",
+  "git_commit": "9a90e99",
+  "arms": [
+    "dense",
+    "kwta_ch_k0.05",
+    "kwta_ch_k0.1",
+    "kwta_ch_k0.2",
+    "kwta_ch_k0.4"
+  ],
+  "k_values": [
+    0.05,
+    0.1,
+    0.2,
+    0.4
+  ],
+  "dim": "channel",
+  "boost": 0.0,
+  "shots_per_class": [
+    10,
+    30,
+    60,
+    300
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "max_steps": 4000,
+  "eval_every": 100,
+  "patience": 12,
+  "batch_size": 64,
+  "lr": 0.001,
+  "selection": "best-on-validation",
+  "device": "cpu",
+  "quick": false
+}

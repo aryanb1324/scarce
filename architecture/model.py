@@ -15,6 +15,7 @@ import torch.nn as nn
 from architecture.baseline import SmallCNN
 from architecture.modules.kwta import KWinnersTakeAll
 from architecture.modules.kwta_v2 import KWinnersTakeAllV2
+from architecture.modules.randk import RandomKChannel, StructuredDropout
 
 
 def build_dense_model(num_classes: int = 10) -> nn.Module:
@@ -59,3 +60,33 @@ def build_kwta_v2_model(num_classes: int = 10, k: float = 0.2,
         return nn.Sequential(nn.ReLU(), KWinnersTakeAllV2(k=k, dim=dim, boost=boost))
 
     return SmallCNN(num_classes=num_classes, activation_fn=sparse_activation_factory)
+
+
+def build_randk_model(num_classes: int = 10, k: float = 0.2) -> nn.Module:
+    """
+    CONTROL for `build_kwta_v2_model(dim="channel")`: identical sparsity structure,
+    random winners instead of competitive ones.
+
+    Stage 1b killed the pattern-separation explanation for the +1.43 (the sparsest
+    arm has the most separation and the worst accuracy; r = +0.19, p = 0.48 across
+    all cells). This arm asks the remaining question: is the input-dependent
+    competition doing the work, or would any structured sparsification do?
+    See modules/randk.py.
+    """
+
+    def factory():
+        return nn.Sequential(nn.ReLU(), RandomKChannel(k=k))
+
+    return SmallCNN(num_classes=num_classes, activation_fn=factory)
+
+
+def build_dropout_model(num_classes: int = 10, k: float = 0.2) -> nn.Module:
+    """
+    CONTROL: conventional structured dropout at a surviving fraction matched to k
+    (p = 1 - k). Answers "isn't this just spatial dropout?" with a measurement.
+    """
+
+    def factory():
+        return nn.Sequential(nn.ReLU(), StructuredDropout(p=1.0 - k))
+
+    return SmallCNN(num_classes=num_classes, activation_fn=factory)
