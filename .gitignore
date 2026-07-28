@@ -1,0 +1,17 @@
+# Datasets — re-downloadable, large, and not part of the record
+data_cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# NOTE: experiments/results/ and experiments/*.csv are deliberately NOT ignored.
+# Root skills.md: "Do not delete failed experiment logs or configs." Run logs are
+# the record of the project and are version-controlled on purpose.

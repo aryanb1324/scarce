@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AryaNet — protocol v1 baseline: dense vs. kWTA</title>
+<style>
+  :root { color-scheme: light; }
+  .viz-root {
+    color-scheme: light;
+    --surface-1:#fcfcfb; --plane:#f9f9f7;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --series-1:#2a78d6;   /* dense baseline */
+    --series-2:#eb6834;   /* kWTA sparse */
+    --div-pos:#2a78d6; --div-neg:#e34948; --div-mid:#f0efec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:#1a1a19; --plane:#0d0d0d;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --series-1:#3987e5; --series-2:#d95926;
+      --div-pos:#3987e5; --div-neg:#e66767; --div-mid:#383835;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:#1a1a19; --plane:#0d0d0d;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --series-1:#3987e5; --series-2:#d95926;
+    --div-pos:#3987e5; --div-neg:#e66767; --div-mid:#383835;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--plane); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .viz-root { background:var(--plane); color:var(--text-primary); padding:28px 22px 40px; max-width:1080px; margin:0 auto; }
+  h1 { font-size:20px; font-weight:600; margin:0 0 4px; letter-spacing:-0.01em; }
+  .sub { color:var(--text-secondary); font-size:13.5px; margin:0 0 22px; line-height:1.5; max-width:76ch; }
+  .kpi { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
+  .tile { background:var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:14px 16px; flex:1 1 200px; }
+  .tile .lab { font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+  .tile .val { font-size:30px; font-weight:600; line-height:1.05; }
+  .tile .val.hero { font-size:48px; }
+  .tile .note { font-size:12px; color:var(--text-secondary); margin-top:5px; line-height:1.35; }
+  .panel { background:var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:18px 18px 8px; margin-bottom:16px; }
+  .panel h2 { font-size:14.5px; font-weight:600; margin:0 0 2px; }
+  .panel .cap { font-size:12.5px; color:var(--text-secondary); margin:0 0 12px; line-height:1.45; }
+  .legend { display:flex; gap:18px; align-items:center; margin:0 0 6px 0; font-size:12.5px; color:var(--text-secondary); flex-wrap:wrap; }
+  .legend .key { display:inline-flex; align-items:center; gap:7px; }
+  .legend .swatch { width:14px; height:3px; border-radius:2px; display:inline-block; }
+  .legend .dotk { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  svg { display:block; width:100%; height:auto; overflow:visible; }
+  .tick { font-size:11px; fill:var(--text-muted); font-variant-numeric:tabular-nums; }
+  .dlabel { font-size:11.5px; font-weight:600; fill:var(--text-secondary); font-variant-numeric:tabular-nums; }
+  .axtitle { font-size:11.5px; fill:var(--text-muted); }
+  #tip { position:fixed; pointer-events:none; opacity:0; transition:opacity .1s; background:var(--surface-1);
+         border:1px solid var(--border); border-radius:8px; padding:9px 11px; font-size:12px; color:var(--text-primary);
+         box-shadow:0 4px 16px rgba(0,0,0,.13); z-index:50; line-height:1.5; white-space:nowrap; }
+  #tip b { font-weight:600; }
+  #tip .r { display:flex; justify-content:space-between; gap:14px; font-variant-numeric:tabular-nums; }
+  #tip .sw { width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:6px; }
+  table { border-collapse:collapse; width:100%; font-size:12.5px; font-variant-numeric:tabular-nums; }
+  th,td { text-align:right; padding:7px 9px; border-bottom:1px solid var(--grid); }
+  th:first-child, td:first-child { text-align:left; }
+  th { color:var(--text-muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; }
+  details { margin-top:4px; }
+  summary { cursor:pointer; font-size:12.5px; color:var(--text-secondary); padding:8px 0; }
+  .verdict { background:var(--surface-1); border:1px solid var(--border); border-left:3px solid var(--div-neg);
+             border-radius:10px; padding:15px 17px; font-size:13.5px; line-height:1.6; color:var(--text-secondary); }
+  .verdict b { color:var(--text-primary); font-weight:600; }
+  .toggle { position:absolute; top:22px; right:22px; background:var(--surface-1); border:1px solid var(--border);
+            color:var(--text-secondary); border-radius:7px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; }
+  .wrap { position:relative; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root">
+<div class="wrap">
+  <button class="toggle" id="tt">Theme</button>
+  <h1>Protocol v1 baseline — dense CNN vs. kWTA sparse</h1>
+  <p class="sub">MNIST, SmallCNN, k=0.2, 5 epochs, 3 seeds, final-epoch test accuracy. Both models see the
+     identical training subset per seed, so every comparison below is <b>paired</b>.</p>
+
+  <div class="kpi">
+    <div class="tile">
+      <div class="lab">kWTA vs dense @ 600 labels</div>
+      <div class="val hero" id="hero">−5.38</div>
+      <div class="note">percentage points, paired mean of 3 seeds (±0.60 SE). All three seeds negative.</div>
+    </div>
+    <div class="tile">
+      <div class="lab">Direction of effect</div>
+      <div class="val">Inverted</div>
+      <div class="note">The hypothesis predicted sparsity helps most when data is scarce. It hurts most when data is scarce.</div>
+    </div>
+    <div class="tile">
+      <div class="lab">Deficit vs. log gradient steps</div>
+      <div class="val">r = 0.92</div>
+      <div class="note">The gap is almost entirely explained by how many optimizer steps each condition got.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Test accuracy vs. labeled training examples</h2>
+    <p class="cap">Log x-axis. Whiskers are ±1 SD across 3 seeds. The two models are indistinguishable where training
+       is long, and diverge where it is short.</p>
+    <div class="legend">
+      <span class="key"><span class="swatch" style="background:var(--series-1)"></span>dense baseline</span>
+      <span class="key"><span class="swatch" style="background:var(--series-2)"></span>kWTA sparse (k=0.2)</span>
+    </div>
+    <svg id="pa" viewBox="0 0 900 360" role="img" aria-label="Test accuracy versus labeled training examples"></svg>
+  </div>
+
+  <div class="panel">
+    <h2>Paired difference (kWTA − dense), by data budget</h2>
+    <p class="cap">Each column is the mean of three per-seed differences; the dots are the individual seeds. Because
+       the seeds share data subsets, dot spread is the real noise floor — at 3,000 and 600 labels the effect is
+       an order of magnitude larger than it.</p>
+    <div class="legend">
+      <span class="key"><span class="swatch" style="background:var(--div-neg)"></span>kWTA worse</span>
+      <span class="key"><span class="swatch" style="background:var(--div-pos)"></span>kWTA better</span>
+      <span class="key"><span class="dotk" style="background:var(--text-muted)"></span>individual seed</span>
+    </div>
+    <svg id="pb" viewBox="0 0 900 320" role="img" aria-label="Paired difference between kWTA and dense by data budget"></svg>
+  </div>
+
+  <div class="panel">
+    <details>
+      <summary>Table view — all conditions</summary>
+      <table id="tbl"></table>
+    </details>
+  </div>
+
+  <div class="verdict">
+    <b>What this does and does not show.</b> It shows that under this protocol kWTA is reliably worse, and worse in
+    proportion to how short training was — not in proportion to how little data there was. Because epochs were held
+    fixed while the dataset shrank, the 1% condition ran ~50 optimizer steps against ~4,690 at 100%, and kWTA updates
+    roughly a fifth of the units per step. The harness gave the sparse model fewest steps exactly where it needed most.
+    <b>So this result cannot yet separate “sparsity hurts data efficiency” from “sparsity converges slower and was
+    scored before it finished.”</b> Matching gradient steps across budgets is the experiment that decides it.
+  </div>
+</div>
+</div>
+<div id="tip"></div>
+
+<script>
+const DATA = [
+  {frac:0.01, n:600,   steps:50,   dm:87.41, ds:0.59, km:82.03, ks:0.65, seeds:[-6.08,-5.87,-4.19], dsd:[87.42,87.99,86.82], ksd:[81.34,82.12,82.63]},
+  {frac:0.05, n:3000,  steps:235,  dm:96.04, ds:0.16, km:93.76, ks:0.50, seeds:[-2.68,-2.21,-1.97], dsd:[95.95,95.95,96.23], ksd:[93.27,93.74,94.26]},
+  {frac:0.10, n:6000,  steps:470,  dm:96.94, ds:0.83, km:96.30, ks:0.31, seeds:[ 0.01,-0.72,-1.21], dsd:[95.99,97.33,97.51], ksd:[96.00,96.61,96.30]},
+  {frac:0.50, n:30000, steps:2345, dm:98.54, ds:0.22, km:98.42, ks:0.06, seeds:[-0.08,-0.30, 0.02], dsd:[98.47,98.79,98.36], ksd:[98.39,98.49,98.38]},
+  {frac:1.00, n:60000, steps:4690, dm:99.00, ds:0.16, km:99.02, ks:0.03, seeds:[ 0.18,-0.17, 0.03], dsd:[98.84,99.16,99.01], ksd:[99.02,98.99,99.04]},
+];
+const cs = getComputedStyle(document.getElementById('root'));
+const C = k => getComputedStyle(document.getElementById('root')).getPropertyValue(k).trim();
+const NS='http://www.w3.org/2000/svg';
+const el=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const tip=document.getElementById('tip');
+function showTip(ev,html){tip.innerHTML=html;tip.style.opacity=1;
+  const r=tip.getBoundingClientRect();let x=ev.clientX+14,y=ev.clientY-r.height-12;
+  if(x+r.width>innerWidth-8)x=ev.clientX-r.width-14; if(y<8)y=ev.clientY+16;
+  tip.style.left=x+'px';tip.style.top=y+'px';}
+function hideTip(){tip.style.opacity=0;}
+
+const L={l:120,r:40,t:14,b:46};
+const xmin=Math.log10(600), xmax=Math.log10(60000);
+
+function draw(){
+  drawA(); drawB();
+}
+
+function drawA(){
+  const s=document.getElementById('pa'); s.innerHTML='';
+  const W=900,H=360, B=64, pw=W-L.l-L.r, ph=H-L.t-B;
+  const X=v=>L.l+(Math.log10(v)-xmin)/(xmax-xmin)*pw;
+  const ymin=80,ymax=100;
+  const Y=v=>L.t+(1-(v-ymin)/(ymax-ymin))*ph;
+
+  for(let v=80;v<=100;v+=5){
+    s.appendChild(el('line',{x1:L.l,x2:L.l+pw,y1:Y(v),y2:Y(v),stroke:C('--grid'),'stroke-width':1}));
+    const t=el('text',{x:L.l-10,y:Y(v)+4,'text-anchor':'end',class:'tick'}); t.textContent=v+'%'; s.appendChild(t);
+  }
+  DATA.forEach(d=>{const t=el('text',{x:X(d.n),y:L.t+ph+19,'text-anchor':'middle',class:'tick'});
+    t.textContent=d.n.toLocaleString(); s.appendChild(t);
+    const t2=el('text',{x:X(d.n),y:L.t+ph+33,'text-anchor':'middle',class:'tick'});
+    t2.setAttribute('fill',C('--text-muted')); t2.textContent=d.steps+' steps'; s.appendChild(t2);});
+  const ax=el('text',{x:L.l+pw/2,y:L.t+ph+56,'text-anchor':'middle',class:'axtitle'});
+  ax.textContent='labeled training examples (log scale)'; s.appendChild(ax);
+
+  [['dm','ds','--series-1','dense baseline','dsd'],['km','ks','--series-2','kWTA sparse','ksd']].forEach(([mk,sk,ck,name,sd])=>{
+    const col=C(ck);
+    // error whiskers
+    DATA.forEach(d=>{ if(d[sk]<=0.001) return;
+      s.appendChild(el('line',{x1:X(d.n),x2:X(d.n),y1:Y(d[mk]-d[sk]),y2:Y(d[mk]+d[sk]),stroke:col,'stroke-width':1.5,opacity:.42}));
+      [d[mk]-d[sk],d[mk]+d[sk]].forEach(v=>s.appendChild(el('line',{x1:X(d.n)-4,x2:X(d.n)+4,y1:Y(v),y2:Y(v),stroke:col,'stroke-width':1.5,opacity:.42})));
+    });
+    const pts=DATA.map(d=>X(d.n)+','+Y(d[mk])).join(' ');
+    s.appendChild(el('polyline',{points:pts,fill:'none',stroke:col,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'}));
+    DATA.forEach(d=>{
+      s.appendChild(el('circle',{cx:X(d.n),cy:Y(d[mk]),r:6,fill:C('--surface-1')}));
+      s.appendChild(el('circle',{cx:X(d.n),cy:Y(d[mk]),r:4.2,fill:col}));
+      const hit=el('circle',{cx:X(d.n),cy:Y(d[mk]),r:15,fill:'transparent',style:'cursor:pointer'});
+      hit.addEventListener('mousemove',e=>showTip(e,
+        `<b>${d.n.toLocaleString()} labels</b> &nbsp;<span style="color:${C('--text-muted')}">${d.steps} steps</span><br>
+         <div class="r"><span><span class="sw" style="background:${C('--series-1')}"></span>dense</span><span>${d.dm.toFixed(2)}% ±${d.ds.toFixed(2)}</span></div>
+         <div class="r"><span><span class="sw" style="background:${C('--series-2')}"></span>kWTA</span><span>${d.km.toFixed(2)}% ±${d.ks.toFixed(2)}</span></div>
+         <div class="r" style="margin-top:3px;border-top:1px solid ${C('--grid')};padding-top:3px"><span>paired Δ</span><span><b>${(d.km-d.dm)>=0?'+':'−'}${Math.abs(d.km-d.dm).toFixed(2)} pts</b></span></div>`));
+      hit.addEventListener('mouseleave',hideTip); s.appendChild(hit);
+    });
+    // Direct-label at the LEFT end, where the two series are maximally separated
+    // (they converge to within 0.02 pts at the right edge, so labels would collide there).
+    const first=DATA[0];
+    const lb=el('text',{x:X(first.n)-13,y:Y(first[mk])+4,'text-anchor':'end',class:'dlabel'});
+    lb.textContent=name; s.appendChild(lb);
+  });
+}
+
+function barPath(x,w,y0,y1,r){ // rounded at the data end (y1), square at baseline (y0)
+  const down=y1>y0, rr=Math.min(r,Math.abs(y1-y0));
+  if(down) return `M${x},${y0} L${x+w},${y0} L${x+w},${y1-rr} Q${x+w},${y1} ${x+w-rr},${y1} L${x+rr},${y1} Q${x},${y1} ${x},${y1-rr} Z`;
+  return `M${x},${y0} L${x+w},${y0} L${x+w},${y1+rr} Q${x+w},${y1} ${x+w-rr},${y1} L${x+rr},${y1} Q${x},${y1} ${x},${y1+rr} Z`;
+}
+
+function drawB(){
+  const s=document.getElementById('pb'); s.innerHTML='';
+  const W=900,H=320, B=52, pw=W-L.l-L.r, ph=H-L.t-B;
+  const X=v=>L.l+(Math.log10(v)-xmin)/(xmax-xmin)*pw;
+  const ymin=-7.4,ymax=1.6;
+  const Y=v=>L.t+(1-(v-ymin)/(ymax-ymin))*ph;
+  const BW=24;
+
+  for(let v=-6;v<=1;v+=1){
+    if(v===0) continue;
+    s.appendChild(el('line',{x1:L.l,x2:L.l+pw,y1:Y(v),y2:Y(v),stroke:C('--grid'),'stroke-width':1}));
+    if(v%2===0){const t=el('text',{x:L.l-10,y:Y(v)+4,'text-anchor':'end',class:'tick'});t.textContent='−'+Math.abs(v);s.appendChild(t);}
+  }
+  s.appendChild(el('line',{x1:L.l,x2:L.l+pw,y1:Y(0),y2:Y(0),stroke:C('--axis'),'stroke-width':1}));
+  const z=el('text',{x:L.l-10,y:Y(0)+4,'text-anchor':'end',class:'tick'}); z.textContent='0'; s.appendChild(z);
+
+  DATA.forEach(d=>{
+    const dl=d.km-d.dm, col=dl<0?C('--div-neg'):C('--div-pos'), x=X(d.n)-BW/2;
+    s.appendChild(el('path',{d:barPath(x,BW,Y(0),Y(dl),4),fill:col}));
+    d.seeds.forEach(v=>{
+      s.appendChild(el('circle',{cx:X(d.n),cy:Y(v),r:5,fill:C('--surface-1')}));
+      s.appendChild(el('circle',{cx:X(d.n),cy:Y(v),r:3.2,fill:C('--text-secondary'),opacity:.85}));
+    });
+    // Clear the label of BOTH the bar end and the seed-dot cluster, so nothing overlaps.
+    const lo=Math.min(dl,...d.seeds), hi=Math.max(dl,...d.seeds);
+    const ly = dl<0 ? Y(lo)+18 : Y(hi)-11;
+    const lab=el('text',{x:X(d.n),y:ly,'text-anchor':'middle',class:'dlabel'});
+    lab.textContent=(dl>=0?'+':'−')+Math.abs(dl).toFixed(2); s.appendChild(lab);
+    const t=el('text',{x:X(d.n),y:L.t+ph+20,'text-anchor':'middle',class:'tick'});
+    t.textContent=d.n.toLocaleString(); s.appendChild(t);
+    const hit=el('rect',{x:x-9,y:L.t,width:BW+18,height:ph,fill:'transparent',style:'cursor:pointer'});
+    hit.addEventListener('mousemove',e=>showTip(e,
+      `<b>${d.n.toLocaleString()} labels</b> &nbsp;<span style="color:${C('--text-muted')}">${d.steps} steps</span><br>
+       <div class="r"><span>paired mean Δ</span><span><b>${(dl>=0?'+':'−')}${Math.abs(dl).toFixed(2)} pts</b></span></div>
+       <div class="r"><span>per seed</span><span>${d.seeds.map(v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2)).join(' · ')}</span></div>`));
+    hit.addEventListener('mouseleave',hideTip); s.appendChild(hit);
+  });
+  const ax=el('text',{x:L.l+pw/2,y:L.t+ph+42,'text-anchor':'middle',class:'axtitle'});
+  ax.textContent='labeled training examples (log scale)'; s.appendChild(ax);
+  const ay=el('text',{x:L.l-52,y:L.t+ph/2,'text-anchor':'middle',class:'axtitle',transform:`rotate(-90 ${L.l-52} ${L.t+ph/2})`});
+  ay.textContent='Δ accuracy (pts)'; s.appendChild(ay);
+}
+
+// table
+(function(){
+  const t=document.getElementById('tbl');
+  let h='<thead><tr><th>Labels</th><th>Fraction</th><th>Steps</th><th>Dense</th><th>kWTA</th><th>Paired Δ</th><th>Per-seed Δ</th></tr></thead><tbody>';
+  DATA.forEach(d=>{const dl=d.km-d.dm;
+    h+=`<tr><td>${d.n.toLocaleString()}</td><td>${(d.frac*100).toFixed(0)}%</td><td>${d.steps}</td>
+        <td>${d.dm.toFixed(2)} ±${d.ds.toFixed(2)}</td><td>${d.km.toFixed(2)} ±${d.ks.toFixed(2)}</td>
+        <td><b>${dl>=0?'+':'−'}${Math.abs(dl).toFixed(2)}</b></td>
+        <td>${d.seeds.map(v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2)).join(', ')}</td></tr>`;});
+  t.innerHTML=h+'</tbody>';
+})();
+
+document.getElementById('tt').addEventListener('click',()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const dark=cur ? cur==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  requestAnimationFrame(draw);
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>requestAnimationFrame(draw));
+draw();
+</script>
+</body>
+</html>

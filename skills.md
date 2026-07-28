@@ -1,0 +1,209 @@
+# Project Skill File
+
+## Project Overview
+
+This project explores a new neural network architecture designed to reach
+strong performance with substantially less training data than standard
+architectures. The design draws inspiration from mechanisms in the human
+brain (e.g. sparse activation, hierarchical/predictive processing,
+few-shot generalization, local learning rules) rather than assuming these
+are copied literally from neuroscience — the goal is a working,
+benchmarkable model, not a biological simulation.
+
+Core workflow: propose a mechanism → implement it as a module → test it in
+isolation on a small controlled task → integrate into the full architecture
+→ benchmark against a standard baseline on identical data budgets →
+ablate → record results.
+
+**First experiment (in progress):** dense ReLU baseline vs. a k-Winner-
+Take-All (kWTA) sparse activation, both on a small CNN trained on MNIST,
+compared across shrinking training-data fractions (100% down to 1%).
+Hypothesis: forced sparsity (like lateral inhibition in cortex) reduces
+interference between examples and improves generalization from less data.
+
+## Tech Stack
+
+- Language: Python 3.11+
+- Framework: PyTorch + torchvision
+- Experiment tracking: plain CSV logging for now (experiments/results.csv)
+  — move to Weights & Biases or MLflow once experiments outgrow one script
+- Config management: none yet — first experiment is a single script
+  (experiments/train.py) with constants at the top. Move to a config
+  system (Hydra or plain YAML) once you're running more than a couple of
+  variants.
+- Environment: any Python 3.11+ env manager (venv/conda/uv); CPU is fine
+  for MNIST-scale experiments, no GPU required to get started
+
+## Architecture
+
+- `architecture/` holds the novel model code — the actual brain-inspired
+  modules and how they compose into the full network.
+- `data/` holds dataset loading, preprocessing, and the low-data sampling
+  logic that is central to the data-efficiency claim.
+- `experiments/` holds training scripts, configs, and results — this is
+  where a "run" happens, using modules from `architecture/` and `data/`.
+- `tests/` holds unit tests for individual modules (not full training
+  runs) so that a new mechanism can be validated cheaply before you spend
+  compute on a full training loop.
+
+## Folder Structure
+
+- `architecture/`: model definitions, custom layers/modules, the specific
+  neuro-inspired mechanisms under test
+- `data/`: dataset classes, preprocessing, low-data / few-shot sampling
+  utilities
+- `experiments/`: training scripts, run configs, logs, results, ablations
+- `tests/`: unit tests for individual modules
+- `skills.md` files in each of the above: directory-specific rules
+
+## Commands
+
+### Environment setup
+```bash
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+### Run unit tests (do this before any full training run)
+```bash
+python -m pytest tests/ -v
+```
+
+### Run the first experiment (dense vs. kWTA across data fractions)
+```bash
+python -m experiments.train
+```
+
+### Plot the results
+```bash
+python -m experiments.plot_results
+```
+
+## Coding Conventions
+
+- Every new architectural mechanism gets its own module in `architecture/`
+  with a short docstring stating: (1) what it does, (2) the neuroscience
+  concept it's loosely inspired by, (3) why it should help with data
+  efficiency specifically — not just "why it might help performance."
+- Set and log a random seed for every run. Data-efficiency claims are
+  fragile to seed variance; never report a single-seed result as a
+  conclusion.
+- Every new module gets a minimal unit test in `tests/` before it's wired
+  into the full architecture — verify output shapes, gradient flow, and
+  behavior on a toy input before spending a full training run on it.
+- Keep the "standard baseline" architecture and its training recipe
+  fixed and version-controlled, so every comparison is against the same
+  target, not a moving one.
+
+## Editing Rules
+
+- Do not change the baseline model or its training config to make a
+  comparison look better — if the baseline needs to change, that's a
+  separate, explicitly-labeled experiment.
+- Do not silently change the data budget (dataset size, epochs, or
+  effective data seen) between the experimental model and the baseline —
+  the data-efficiency comparison is only valid if this is controlled.
+- Make the smallest change that tests one mechanism at a time. Avoid
+  bundling multiple architectural changes into one experiment — you won't
+  know which one caused the effect.
+- Do not delete failed experiment logs or configs. Move them to an
+  `experiments/archive/` or similar rather than deleting — negative
+  results are information.
+
+## Dangerous Areas
+
+- `experiments/configs/baseline_*.yaml` (or equivalent) — this defines the
+  comparison point for every claim in the project; changes here need to be
+  deliberate and logged.
+- Anything touching the data split / sampling logic in `data/` — a subtle
+  leak between train/val/test here would invalidate the entire
+  data-efficiency claim.
+- Evaluation metric code — changing how a metric is computed mid-project
+  makes historical results incomparable.
+
+## Debugging Playbook
+
+When a new mechanism doesn't work or a run produces strange results:
+
+1. Reproduce on the smallest possible setup (tiny synthetic data, few
+   steps) before debugging on the full run.
+2. Check output shapes and gradient flow through the new module in
+   isolation (this is what the `tests/` unit test should already cover —
+   if it wasn't covered, add it now).
+3. Check the loss curve shape, not just the final number — divergence,
+   plateaus, or NaNs early on usually point to a specific cause
+   (initialization, learning rate, or a broken forward pass).
+4. Check whether the data pipeline is actually delivering what you think
+   it is (log a batch and inspect it directly).
+5. Isolate: disable the new mechanism and confirm the baseline still
+   trains normally in the same harness, to rule out infrastructure bugs.
+6. Once the root cause is found, update the relevant `skills.md` with what
+   was learned.
+
+## Self-Improvement Rule
+
+Whenever you make progress, fix a bug, discover an architectural detail,
+or receive a correction from the user, update the relevant skill file.
+
+- If the lesson applies to the whole project (e.g. a data leakage bug, a
+  seed-handling rule), update this root file.
+- If the lesson is specific to one directory, update that directory's
+  `skills.md`.
+- Write specific, reusable rules — not vague reminders like "be careful
+  with data splits." Say what happened and what rule prevents it.
+
+## Recent Lessons
+
+### 2026-07-27 — Fixed epochs across data fractions is not a data-efficiency experiment
+
+**What happened.** The first experiment (v1) held `EPOCHS = 5` constant while the
+training set shrank from 60,000 to 600. That means the 1% condition ran ~50
+optimizer steps and the 100% condition ran ~4,690. kWTA lost at every budget, and
+the deficit grew monotonically as data shrank (+0.01 pts at 60k, −2.29 at 3k,
+−5.38 at 600). The deficit correlates with log(gradient steps) at r = 0.92.
+
+**Why it matters.** kWTA masks ~80% of units, so it updates roughly a fifth of the
+weights per step and needs more steps to converge. The harness gave it fewest
+steps exactly where it needed most. The result is therefore uninterpretable as a
+data-efficiency finding: it cannot separate "sparsity hurts generalization from
+few examples" from "sparsity converges slower and was scored before it finished."
+
+**The rule.** *When the training-set size is the independent variable, the
+optimization budget must be held constant — fixed gradient steps, or train to
+convergence with best-on-validation selection. Never fixed epochs.* Fixed epochs
+silently makes dataset size and optimization budget the same variable, so any
+mechanism that changes convergence speed gets misread as a data-efficiency effect.
+
+**Corollary.** Any result where the effect size tracks the number of gradient
+steps should be treated as an optimization artifact until a step-matched re-run
+says otherwise. Compute that correlation before interpreting a curve.
+
+Applies project-wide. See `experiments/train_v2.py` for the corrected protocol
+and `PLAN.md` for the full audit.
+
+### 2026-07-27 — Report the paired difference, not two independent means
+
+Both models see the identical training subset for a given seed, so the comparison
+is paired and the per-seed difference has much lower variance than either arm.
+Reporting `mean(kwta) ± sd` and `mean(dense) ± sd` separately discards that. At
+6,000 labels the arms overlap heavily while the paired delta is a consistent
+−0.64; at 3,000 the paired t is −11 on only 3 seeds.
+
+**The rule.** *Report `acc(new) − acc(baseline)` per seed, its mean, and its SE.
+Report sign consistency across seeds explicitly.* Three seeds can support a
+conclusion when the comparison is paired and every seed agrees in sign; the same
+three seeds support nothing when reported unpaired.
+
+### 2026-07-27 — A mechanism needs a metric of its own, not just accuracy
+
+kWTA's stated hypothesis is that sparse codes reduce interference between
+examples. Accuracy alone cannot tell you whether the mechanism failed or the
+hypothesis linking the mechanism to accuracy failed — and those call for opposite
+next steps.
+
+**The rule.** *Every mechanism ships with a direct measurement of the thing it
+claims to do, logged alongside accuracy.* For kWTA: pairwise overlap of active-unit
+sets (same-class vs different-class) and the fraction of units that never win.
+For episodic memory: retrieval accuracy in isolation. Without it, a flat result is
+a shrug instead of a finding.
