@@ -134,3 +134,29 @@ experiment.
 **Rule:** the hypothesis, the comparison point, and the decision rule go in the
 run's config or script docstring before it executes, and are not edited
 afterwards.
+
+### 2026-07-28 — A script's printed verdict is a convenience, not the analysis
+
+`train_stage2_control.py` prints an automated verdict keyed on a single contrast,
+`kwta_channel − randk_channel`. It printed **"COMPETITION IS THE MECHANISM"** at
+both budgets, and quoting that alone would have been misleading twice over:
+
+1. It never looks at the fourth arm. `dropout_matched` **ties kWTA at 300 labels**
+   (paired −0.11, t = −0.95, signs 4+/4−) and only loses at 600 (+1.01, t = 5.90).
+   The docstring pre-registers a branch for exactly that — "reachable with a
+   standard tool" — and the printout cannot fire it because it was written to
+   answer one question.
+2. The contrast it does compute is confounded: the two arms differ in effective
+   sparsity by 3.4× (see `architecture/skills.md`), so the +12.9 gap is an upper
+   bound, not a measurement.
+
+**Rule:** *re-derive any printed verdict from the CSV, across every arm, before
+repeating it.* A pre-registered branch fires on the data, not on whether the
+summary function happens to check for it. Where a run has k arms, compute all the
+pairwise paired contrasts that a registered branch mentions — the auto-summary is
+there to catch your eye during the run, not to write the conclusion.
+
+**Corollary — run the power condition first, it can invalidate the rest.** Doing
+`POWER=1` before the main run cost 35 minutes and retracted a recorded finding
+(the 100-label reversal). Order cheap decisive conditions ahead of expensive ones:
+a result that changes what the main run means is worth more than the main run.

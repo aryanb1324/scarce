@@ -196,3 +196,49 @@ activations are exactly 0; `torch.topk` returns k entries regardless, so it
 (post-ReLU, post-normalization), not just on Gaussian noise. And assert the real
 contract: gradient exactly zero for masked units, exactly one for survivors — not
 merely that "some gradient is nonzero."
+
+### 2026-07-28 — The random-k control is NOT sparsity-matched, and the same
+### post-ReLU-zeros bug is the cause
+
+Stage 2 ran `randk_channel` as the control for "is the competition doing the work,
+or would any structured sparsity do?" It was designed to hold k, axis, and *exact
+surviving count* identical to `kwta_channel`. It does not, and the run's headline
+number is confounded because of it.
+
+Measured in the trained network, FC layer, nominal k = 0.2 × 128 = 26 units:
+
+| arm | nominal selected | actually nonzero |
+|---|---|---|
+| `kwta_channel` | 26 | **26.0** |
+| `randk_channel` | 26 | **7.6** (300 labels), 7.4 (600) |
+
+kWTA carries **3.4–3.5× the live units** at identical nominal k. The cause is the
+failure already recorded two sections above: after ReLU, most activations are
+exactly 0. `topk` by value lands on the largest entries, which are all nonzero, so
+kWTA's effective count equals its nominal count. Random selection lands on zeros
+in proportion to how many there are, so it throws away most of its own budget. On
+synthetic post-ReLU input with 50% zeros the ratio is 2.0× in unit count and 3.4×
+in surviving activation *mass*; the real network has ~70% zeros, giving 3.4×.
+
+So `randk` is not "same sparsity, random selection." It is **"much sparser, AND
+random selection, AND unrescaled."** The −11.3 / −11.6 pt collapse mixes at least
+three causes and cannot be attributed to input-dependence alone.
+
+**The rule.** *A control that matches a masking mechanism on its nominal count is
+not matched — match it on the count that survives the activation function, and
+log both numbers.* Any selection rule whose criterion correlates with magnitude
+(top-k, threshold, sign) is self-selecting for nonzeros; a random or fixed rule is
+not. Verify the match by measuring effective nonzero count in the trained network,
+not by reading the mask's shape.
+
+**Corollary for the unit test.** `test_sparsity_count_matches_kwta_exactly` passes
+and is wrong about what it proves: it feeds `relu(randn) + 1e-3`, which is
+*strictly positive*, so no zeros exist and the two counts trivially agree. It is
+the same `randn` blind spot as the section above, one file later. A count-matching
+test must use an input with the real zero fraction.
+
+**What a clean control would be.** Give randk a larger k so its *effective*
+nonzero count equals kWTA's 26 (≈ k 0.68 at the observed zero fraction), or
+restrict random selection to the nonzero entries. Until one of those runs, the
+kwta-vs-randk gap is an upper bound on the competition effect, not a measurement
+of it.

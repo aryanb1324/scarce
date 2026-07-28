@@ -114,6 +114,31 @@ winners. If kWTA ≈ randk, the honest description is "a well-tuned structured
 regularizer," not lateral inhibition, and the brain-inspired framing should be
 dropped rather than defended.
 
+## Update — Stage 2 + power run (8 seeds / 20 seeds)
+
+**Retracted.** The 100-label reversal is gone. 20 seeds give **−0.06 ± 0.31**
+(95% CI [−0.67, +0.54], 12+/8−) where 5 seeds gave −0.79. The first five seeds
+reproduce −0.794 exactly, so it was seed luck, not a pipeline difference. The
+sweep is ~0 / +1.58 / +1.66 / +0.19 at 100 / 300 / 600 / 3,000 — still
+non-monotonic, but a **flat null** at the scarcest end rather than a reversal.
+Paired sd at 100 labels is 1.375 (vs 0.50–0.87 at 600); resolving 0.79 pt there
+needs ~24 seeds.
+
+**kWTA replicates at 8 seeds:** +1.58 at 300, +1.66 at 600, 8/8 seeds both.
+
+**The randk control is confounded — do not cite the +12.9 gap as-is.** It matches
+kWTA on *nominal* count but not on surviving signal: 26.0 vs **7.6** live FC units
+(3.4×), because random selection lands on post-ReLU zeros while top-k cannot. The
+gap is an upper bound on the competition effect. A k-corrected rerun (randk at
+k ≈ 0.68, or selection restricted to nonzeros) is the outstanding task.
+
+**The uncomfortable arm is `dropout_matched`,** which the auto-verdict ignores: it
+**ties kWTA at 300 labels** (−0.11, t = −0.95, 4+/4−) and loses only at 600
+(+1.01, t = 5.90). Half the pre-registered "reachable with a standard tool" branch
+has fired. Dropout also has 2.5× kWTA's code separation (0.42–0.45 vs 0.16–0.18)
+while being no better — an independent replication of "separation is not the
+mechanism."
+
 **Known non-novelty:** channel-wise kWTA is `local=True` in `nupic.torch`, and
 duty-cycle boosting is Numenta's. The defensible contribution is the protocol, the
 optimization-budget confound, and the mechanism-level measurements — not the

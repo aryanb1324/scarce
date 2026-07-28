@@ -302,6 +302,39 @@ unstable that the p-value tracks luck in the spread rather than effect size.
 sign consistency and effect magnitude to decide what to run next; use 5+ seeds
 before a number goes in a conclusion, and more where the decision hinges on it.
 
+### 2026-07-28 — "5+ seeds" was not enough either, at the noisiest budget
+
+The rule above said 5 seeds is enough for a conclusion. A 20-seed power run says
+that depends entirely on the budget, and the rule as written produced a false
+finding.
+
+Stage 1b reported kWTA at **−0.79 vs dense at 100 labels** (5 seeds) and it was
+written up as a falsification: "the advantage does not grow as labels get scarcer
+— it reverses." Re-running the identical cell with 20 seeds:
+
+    100 labels, paired:  −0.06 pts   sd 1.375   se 0.31   t = −0.20
+                         95% CI [−0.67, +0.54]   signs 12+/8−
+
+The first five seeds reproduce **−0.794**, against the recorded −0.79 — so this is
+not a pipeline change or a different subset. Seeds 5–19 simply cancel it. The
+"reversal" was one particular quintet of seeds.
+
+The reason is that the paired sd is **not constant across the sweep**: 1.375 at
+100 labels against 0.50–0.87 at 600. It grows as labels fall — precisely where the
+scarcity claims live. At that sd, resolving the claimed 0.79 pt needs ~24 seeds;
+five gives roughly 20% power.
+
+**The rule.** *Measure the paired sd at a budget before interpreting any effect at
+that budget, and state the seeds needed for the effect size you intend to claim.*
+Seed counts are per-budget, not per-project. A useful reflex: an effect under
+~2 × se is a coin flip regardless of how clean the sign split looks — 12+/8− here
+looked like a trend and was nothing.
+
+**What survives.** The non-monotonicity is still real, but weaker than recorded:
+~0 at 100 labels, +1.58 at 300, +1.66 at 600, +0.19 at 3,000. A flat null at the
+scarcest end, not a reversal. Correct the claim rather than keeping the stronger
+version.
+
 ### 2026-07-27 — A mechanism needs a metric of its own, not just accuracy
 
 kWTA's stated hypothesis is that sparse codes reduce interference between
