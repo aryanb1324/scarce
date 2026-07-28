@@ -153,6 +153,28 @@ or receive a correction from the user, update the relevant skill file.
 - Write specific, reusable rules — not vague reminders like "be careful
   with data splits." Say what happened and what rule prevents it.
 
+## Environment
+
+**The runtime is Python 3.9** (`/Library/Developer/CommandLineTools/usr/bin/python3`
+on the Mac). Code for this project is often drafted in a newer environment, so
+syntax that is legal where it was written can fail on import here.
+
+Do not use, anywhere in this repo:
+
+- PEP 604 unions in annotations — `float | int` → `Union[float, int]`, or put
+  `from __future__ import annotations` directly after the module docstring, which
+  makes every annotation in the file a lazy string and is the safer blanket fix.
+- PEP 585 builtin generics — `list[str]`, `dict[str, int]` → `List[str]`, `Dict[...]`.
+- `match` statements, `ExceptionGroup`, `tomllib`.
+
+Also avoid `Tensor.any(dim=(a, b))` / `.all(dim=(a, b))` — tuple `dim` is newer
+than tuple `dim` for `sum`/`mean`, which do work. Use `.flatten(2).any(dim=2)`.
+
+**How to catch it:** a syntax error in a new module aborts the whole run at
+import, after MNIST loads but before any training — so it costs a round trip, not
+a sweep. Import the new module on its own first (`python -c "import
+architecture.modules.X"`) before launching an hour-long experiment.
+
 ## Recent Lessons
 
 ### 2026-07-27 — Fixed epochs across data fractions is not a data-efficiency experiment

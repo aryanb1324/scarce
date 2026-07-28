@@ -67,7 +67,7 @@ def test_structured_dropout_is_identity_in_eval():
 def test_structured_dropout_drops_whole_channels_in_train():
     x = torch.ones(64, 16, 7, 7)
     out = StructuredDropout(p=0.8).train()(x)
-    per_channel = (out != 0).any(dim=(2, 3))            # [B, C]
+    per_channel = (out != 0).flatten(2).any(dim=2)       # [B, C]  (tuple dim needs newer torch)
     partial = ((out != 0).float().mean(dim=(2, 3)) % 1 != 0).any()
     assert not partial, "Dropout2d must drop entire channels, not individual positions"
     assert per_channel.float().mean().item() < 0.5

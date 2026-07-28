@@ -65,6 +65,8 @@ resulting variance is far below the seed variance, and the run is reproducible
 because the global seed is set before each run.
 """
 
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 
