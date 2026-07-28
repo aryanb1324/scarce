@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aryanet"
+version = "0.1.0"
+description = "Measure which architecture actually helps on your low-data problem, instead of assuming one does."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Aryan Bhattacharya" }]
+keywords = ["low-data", "data-efficiency", "few-shot", "sparse-activations", "model-selection", "pytorch"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Deliberately minimal. The statistics are implemented in `aryanet/stats.py`
+# rather than pulled from scipy, so installing this does not drag in a
+# scientific stack.
+dependencies = [
+    "torch>=1.13",
+    "numpy>=1.21",
+]
+
+[project.optional-dependencies]
+# Only the MNIST example and the research experiments need torchvision.
+examples = ["torchvision>=0.14"]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/aryanb/aryanet"
+Source = "https://github.com/aryanb/aryanet"
+
+[tool.setuptools]
+# `aryanet` imports the mechanism modules from `architecture.modules`, so the
+# research package ships with the library rather than being duplicated into it.
+# One source of truth for every layer.
+packages = ["aryanet", "architecture", "architecture.modules", "data"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

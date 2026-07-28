@@ -335,6 +335,34 @@ looked like a trend and was nothing.
 scarcest end, not a reversal. Correct the claim rather than keeping the stronger
 version.
 
+### 2026-07-28 — "Which arm won" needs the head-to-head test, not two deltas
+### against the reference
+
+Building `aryanet` surfaced a gap that the experiment scripts have had all along.
+Every run reports each arm's paired delta *against dense*, and the arm with the
+biggest delta gets called the winner. That is not the same question.
+
+At 300 MNIST labels, 5 seeds: `kwta_channel` +1.91 and `dropout` +1.68. Both beat
+dense significantly. But the paired **head-to-head** difference is +0.23 with
+sd 0.72 -- p = 0.52, and two of five seeds favour dropout. The arms are
+indistinguishable, and "kwta wins at 300" was never supportable. At 600 labels the
+same comparison gives +0.52, sd 0.27, p = 0.0124: genuinely resolved.
+
+The head-to-head costs nothing. Both arms' deltas are measured against dense at
+the same seed, so dense cancels and `delta_a[i] - delta_b[i]` is exactly the
+paired difference -- no extra runs, just arithmetic that was not being done.
+
+**The rule.** *Ranking arms by their deltas against a shared reference is not a
+comparison between the arms. Before naming a winner among several arms, compute
+the paired head-to-head difference against the runner-up and report its p.* An
+arm leads the table by a margin smaller than the noise more often than intuition
+suggests, especially when every arm beats the reference.
+
+**Corollary — decide ties against your own hypothesis.** When the margin is
+unresolvable, prefer the simpler or more standard arm. Here that means returning
+`dropout` over the project's own mechanism at 300 labels. A rule that breaks ties
+toward the thing you are hoping for will find support in noise indefinitely.
+
 ### 2026-07-27 — A mechanism needs a metric of its own, not just accuracy
 
 kWTA's stated hypothesis is that sparse codes reduce interference between

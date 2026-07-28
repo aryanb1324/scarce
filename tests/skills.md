@@ -34,3 +34,30 @@ where it is indistinguishable from a real regression.
 to assert the distribution instead.* Prefer `> 0.98` with a seed, or assert the
 rate directly, over a bound that happens to hold for the draw you tried once.
 
+### 2026-07-28 — Hand-written fixtures for a statistical test encode your
+### assumptions, and then the test confirms them
+
+`test_an_unresolvable_margin_does_not_sell_the_fancier_arm` was written with
+invented per-seed numbers meant to represent "kwta +1.9, dropout +1.7, tied."
+The invented arms tracked each other far too tightly seed-for-seed
+(differences [0.3, 0.1, 0.2, 0.2, 0.4]), so the *paired* difference had almost no
+variance and came out significant at p = 0.009. The test failed, and read as
+"the tie-breaking feature is broken."
+
+The real measured deltas from `examples/mnist_low_data` differ [-0.70, -0.02,
++0.78, +1.12, -0.04] -- mean +0.23, p = 0.52, two seeds favouring the other arm.
+Genuinely tied, and the feature was correct all along. The fixture, not the code,
+carried the wrong belief: real arms are far less correlated across seeds than
+intuition suggests, because seed noise is largely independent between them.
+
+**Rule:** *for a test of a statistical decision rule, use real measured values
+from a recorded run as the fixture, and cite the run.* Invented numbers smuggle
+in an assumption about the correlation structure, which is usually the exact
+quantity the rule is deciding on. If a fixture must be synthetic, assert its
+statistics (sd, p, sign split) explicitly so the assumption is visible instead of
+implicit.
+
+**Corollary:** a failing test whose fixture you wrote by hand is ambiguous
+evidence. Check whether the fixture is realistic before changing the code -- here,
+"fixing" the code to make that test pass would have broken a correct feature.
+
