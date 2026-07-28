@@ -92,9 +92,18 @@ kept and are still the reference point for "what the naive protocol says," but
 they cannot support a data-efficiency claim — see the root `skills.md` lesson on
 fixed epochs.
 
-**v2** (`train_v2.py`): identical gradient-step budget at every data fraction,
-best-on-validation checkpoint selection, stratified sampling, subset-computed
-normalization, per-run result directory with config, dead-unit diagnostics.
+**v2** (`train_v2.py`): every run trains until validation accuracy stops improving
+(patience-based early stopping, capped at MAX_STEPS) and is scored at its
+best-validation checkpoint, so neither model can be scored mid-convergence
+whatever its data budget. Plus stratified sampling, subset-computed
+normalization, a frozen val split, per-run result directory with config and
+commit hash, and three diagnostics (convergence speed, dead units, code overlap).
+
+Note the design choice: a *fixed step count* would also remove v1's confound, but
+only by equalizing it — both models could still be scored before finishing.
+Training each to convergence is what actually answers "how well can this model do
+with this much data," and it converts the confound into a measurement, since
+`best_val_step` is then the convergence-speed difference itself.
 
 **Rule:** protocol changes get a version number and a new entry point; they never
 edit the existing one in place. Two protocols coexisting is correct — silently
