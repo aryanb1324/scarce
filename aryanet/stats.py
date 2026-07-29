@@ -154,8 +154,9 @@ def paired_difference(a: Paired, b: Paired) -> Paired:
 
 def decide(arms: Sequence[Paired], alpha: float = 0.05,
            min_sign_fraction: float = 0.75,
-           complexity: Optional[Dict[str, int]] = None) -> Decision:
-    """Pick a winner, or return dense when nothing clears the bar.
+           complexity: Optional[Dict[str, int]] = None,
+           reference: str = "dense") -> Decision:
+    """Pick a winner, or return the reference when nothing clears the bar.
 
     Three conditions, all required:
       1. the mean paired delta is positive;
@@ -172,14 +173,22 @@ def decide(arms: Sequence[Paired], alpha: float = 0.05,
     component. Shipping an exotic mechanism because its mean was 0.2 pts higher
     than dropout, on data where 0.2 pts is noise, is precisely the overclaim this
     library exists to prevent, and it would be self-serving here.
+
+    `reference` names the arm every delta was measured against, and is what gets
+    returned when nothing clears the bar. It defaults to "dense" so a
+    mechanism-only search is unchanged; an (architecture x mechanism) search
+    passes "cnn/dense". With an architecture axis in play the complexity ranks
+    are architecture-dominant, so an unresolvable tie between a small model and a
+    large one returns the SMALL one -- which is the whole reason the axis was
+    worth adding.
     """
-    tested = [a for a in arms if a.name != "dense"]
+    tested = [a for a in arms if a.name != reference]
     if not tested:
-        return Decision("dense", "No candidate arms were run.", False, alpha)
+        return Decision(reference, "No candidate arms were run.", False, alpha)
 
     if any(a.n < 2 for a in tested):
         return Decision(
-            "dense",
+            reference,
             "Only {} seed(s): variance is unmeasurable, so no effect can be "
             "distinguished from seed luck. Use seeds>=5.".format(tested[0].n),
             False, alpha)
@@ -197,9 +206,9 @@ def decide(arms: Sequence[Paired], alpha: float = 0.05,
                      "to resolve at this noise level; you ran {}.".format(
                          best.name, best.mean, need, best.n))
         return Decision(
-            "dense",
-            "No mechanism beat dense by more than the noise on this data "
-            "(Bonferroni alpha={:.4f}).{}".format(adj, extra),
+            reference,
+            "No candidate beat {} by more than the noise on this data "
+            "(Bonferroni alpha={:.4f}).{}".format(reference, adj, extra),
             False, alpha)
 
     best = max(passing, key=lambda a: a.mean)
@@ -208,12 +217,17 @@ def decide(arms: Sequence[Paired], alpha: float = 0.05,
     tied = [a for a in passing
             if a.name != best.name and not (paired_difference(best, a).p < adj)]
 
+    # An arm with no declared rank must never win a tie by default. Ranks are an
+    # open scale (the architecture axis uses arch*10 + mechanism, so 0..42), so
+    # any fixed default would sit in the middle of it and hand ties to whichever
+    # arm someone forgot to rank. Unranked loses ties, and only ties.
     rank = complexity or {}
     pool = [best] + tied
-    win = min(pool, key=lambda a: (rank.get(a.name, 5), -a.mean))
+    win = min(pool, key=lambda a: (rank.get(a.name, 10 ** 6), -a.mean))
 
-    reason = ("{:+.2f} pts vs dense, p={:.4g} < {:.4g} (Bonferroni), {}/{} seeds "
-              "agree.".format(win.mean, win.p, adj, win.signs.count("+"), win.n))
+    reason = ("{:+.2f} pts vs {}, p={:.4g} < {:.4g} (Bonferroni), {}/{} seeds "
+              "agree.".format(win.mean, reference, win.p, adj,
+                              win.signs.count("+"), win.n))
     others = [a.name for a in pool if a.name != win.name]
     if others:
         reason += (" Statistically tied with {}; picked the simplest of them, so "

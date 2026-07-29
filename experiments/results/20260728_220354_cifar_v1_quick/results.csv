@@ -1,0 +1,3 @@
+protocol,git_commit,device,arm,k,shots_per_class,n_train_examples,seed,steps_run,hit_step_cap,best_val_acc,best_val_step,test_acc,n_params,active_units,dead_frac_conv1,dead_frac_conv2,dead_frac_fc,dead_frac_all,overlap_same,overlap_diff,separation,train_seconds
+cifar_v1_quick,437fd7c-dirty,cpu,dense,,30,300,0,150,1,0.3014,150,0.2987,268650,73.0,0.0,0.0,0.3438,0.25,0.834,0.8169,0.017,8.1
+cifar_v1_quick,437fd7c-dirty,cpu,kwta_channel,0.2,30,300,0,150,1,0.2812,150,0.2821,268650,26.0,0.0,0.0625,0.5938,0.4432,0.5703,0.5386,0.0318,9.1

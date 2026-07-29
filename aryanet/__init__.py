@@ -14,33 +14,69 @@ labels (8/8 seeds), was worth ~0 at 100 labels and +0.19 at 3,000, and was tied
 by ordinary dropout at one of the two budgets where it worked -- all on one
 dataset that saturates near 99% and flatters regularizers of every kind.
 
-What it DOES ship is the measurement. `fit` runs each candidate mechanism on your
-data under a protocol built to avoid the mistakes that produced wrong answers in
-this project's own history -- train to convergence rather than fixed epochs,
-paired seeds on identical batches, normalization fitted on training data only --
+What it DOES ship is the measurement. `fit` runs each candidate on your data under
+a protocol built to avoid the mistakes that produced wrong answers in this
+project's own history -- train to convergence rather than fixed epochs, paired
+seeds on identical batches, normalization fitted on training data only --
 measures the noise floor on your data, and names a winner only when the effect
-clears it. When nothing does, it says so and gives you a dense network.
+clears it. When nothing does, it says so and gives you a standard network.
 
 That refusal is the feature. A library that always finds a winner is a library
 that will hand you seed luck.
+
+TWO AXES, AND A COMPUTE BUDGET
+------------------------------
+    # mechanisms only, on the frozen research stack (the original behaviour)
+    aryanet.fit(x, y)
+
+    # + capacity, depth, and a logistic-regression baseline: 12 arms, and a
+    #   two-stage search so that costs 68 runs rather than 96
+    aryanet.fit(x, y, architectures="default", budget="standard")
+
+At a few hundred labels, capacity is usually the dominant knob and a SMALLER
+model often wins outright, so a search that varies only the activation cannot
+reach the right answer. `budget` switches on a screen-then-confirm search whose
+confirming stage uses seeds DISJOINT from the screen, and decides on those alone
+-- selecting arms and then testing them on the same runs is a garden-of-forking-
+paths error, and `aryanet/staged.py` documents both how that is avoided and the
+one thing seed-splitting cannot fix.
 """
 
+from aryanet.architectures import (
+    Architecture,
+    Arm,
+    cross,
+    default_architectures,
+    default_arms,
+)
 from aryanet.mechanisms import Candidate, control_candidates, default_candidates
-from aryanet.nets import build_net
+from aryanet.nets import build_cnn, build_linear, build_net, count_parameters
 from aryanet.protocol import Normalizer, TrainConfig, stratified_split
 from aryanet.search import SearchResult, fit
+from aryanet.staged import BUDGETS, Budget, screen
 from aryanet.stats import Paired, decide, paired_stats, seeds_needed
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "fit",
     "SearchResult",
     "TrainConfig",
+    "Budget",
+    "BUDGETS",
+    "screen",
     "Candidate",
     "default_candidates",
     "control_candidates",
+    "Architecture",
+    "Arm",
+    "default_architectures",
+    "default_arms",
+    "cross",
     "build_net",
+    "build_cnn",
+    "build_linear",
+    "count_parameters",
     "Normalizer",
     "stratified_split",
     "paired_stats",

@@ -1,0 +1,31 @@
+{
+  "protocol": "cifar_v1_quick",
+  "dataset": "cifar10",
+  "git_commit": "437fd7c-dirty",
+  "arms": [
+    "dense",
+    "kwta_channel"
+  ],
+  "k": 0.2,
+  "input_shape": [
+    3,
+    32,
+    32
+  ],
+  "shots_per_class": [
+    30
+  ],
+  "seeds": [
+    0
+  ],
+  "max_steps": 150,
+  "eval_every": 50,
+  "patience": 2,
+  "batch_size": 64,
+  "lr": 0.001,
+  "selection": "best-on-validation",
+  "model_builder": "aryanet.nets.build_net",
+  "device": "cpu",
+  "quick": true,
+  "pilot": false
+}
