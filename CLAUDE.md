@@ -1,4 +1,4 @@
-# AryaNet — brain-inspired data-efficient architectures
+# scarce — brain-inspired data-efficient architectures
 
 Testing whether brain-inspired structural priors let a network learn from fewer
 labels. Small CNN, MNIST, CPU-scale. The point is not to build a big model — it is

@@ -1,4 +1,4 @@
-# AryaNet — Audit and Staged Plan
+# scarce — Audit and Staged Plan
 
 **Date:** 2026-07-27
 **Status of baseline:** not yet measured in this session (sandbox has no PyTorch
