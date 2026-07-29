@@ -33,8 +33,8 @@ examples = ["torchvision>=0.14"]
 dev = ["pytest>=7"]
 
 [project.urls]
-Homepage = "https://github.com/aryanb/scarce"
-Source = "https://github.com/aryanb/scarce"
+Homepage = "https://github.com/aryanb1324/scarce"
+Source = "https://github.com/aryanb1324/scarce"
 
 [tool.setuptools]
 # `scarce` imports the mechanism modules from `architecture.modules`, so the
