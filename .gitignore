@@ -15,3 +15,7 @@ venv/
 # NOTE: experiments/results/ and experiments/*.csv are deliberately NOT ignored.
 # Root skills.md: "Do not delete failed experiment logs or configs." Run logs are
 # the record of the project and are version-controlled on purpose.
+
+# Build artifacts
+build/
+dist/
