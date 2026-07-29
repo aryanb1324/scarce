@@ -1,5 +1,7 @@
 # scarce
 
+[![tests](https://github.com/aryanb1324/scarce/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanb1324/scarce/actions/workflows/ci.yml)
+
 **Find out which architecture actually helps on your low-data problem — instead of trusting one that helped on someone else's.**
 
 ```python
@@ -233,18 +235,40 @@ The `QUICK` run deliberately uses a budget too short to converge, so kWTA looks
 bad. That's not a bug — it's a live demonstration of the fixed-epoch confound the
 protocol exists to prevent.
 
+## Development & verification
+
+```bash
+git clone https://github.com/aryanb1324/scarce.git && cd scarce
+pip install -e ".[dev]"
+pytest -q
+```
+
+The suite is **148 tests** and runs in ~30s on CPU — unit tests on toy tensors
+plus end-to-end `fit()` runs; no dataset downloads, no network. CI runs it on
+Python 3.9 on every push (badge up top).
+
+The install path itself is verified, not assumed. Each of these was run against a
+clean environment:
+
+- the whole tree byte-compiles on Python 3.9 (the target runtime);
+- `python -m build` produces a wheel + sdist that pass `twine check`, and the
+  wheel's `top_level.txt` is exactly `scarce` — installing it adds nothing generic
+  like `data` or `architecture` to your environment;
+- the built wheel installs into a fresh venv and both `fit()` paths run;
+- `pip install git+https://github.com/aryanb1324/scarce.git` — the command above —
+  installs cleanly from this public repo.
+
 ## Honest limitations
 
 - **Validated on MNIST only.** The gating question for the whole project is
   CIFAR-10 under the identical protocol; it needs a GPU and has not been run.
   Until it is, treat the built-in mechanisms as *candidates worth measuring*, not
   as things known to help.
-- **The mechanism story is unresolved.** Whether the input-dependent competition
-  is doing the work, or whether any structured sparsity would do, is still open —
-  the `randk` control that was supposed to answer it turned out to be confounded
-  (it matches kWTA on nominal count but keeps 3.4× fewer live units, because
-  random selection lands on post-ReLU zeros and top-k can't). See
-  `architecture/skills.md`.
+- **The mechanism effect is real but small, and an upper bound.** A
+  sparsity-matched control (Stage 2b) shows the input-dependent competition beats
+  a random-selection baseline by ~2 points, 8/8 seeds — not the ~13 an earlier
+  confounded control suggested, and even the ~2 is inflated by that control
+  hitting the step cap. See the section above and `architecture/skills.md`.
 - **Search cost.** `arms × seeds` full training runs. Defaults are 4 × 5 = 20.
   That is the price of an answer you can trust; `TrainConfig` and `candidates`
   let you trade it down.
