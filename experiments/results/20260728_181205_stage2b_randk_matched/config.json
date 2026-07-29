@@ -1,0 +1,30 @@
+{
+  "protocol": "stage2b_randk_matched",
+  "git_commit": "73f1037-dirty",
+  "arms": [
+    "dense",
+    "kwta_channel",
+    "randk_matched",
+    "randk_nominal"
+  ],
+  "k": 0.2,
+  "shots_per_class": [
+    30
+  ],
+  "seeds": [
+    0
+  ],
+  "max_steps": 150,
+  "eval_every": 50,
+  "patience": 2,
+  "batch_size": 64,
+  "lr": 0.001,
+  "selection": "best-on-validation",
+  "device": "cpu",
+  "quick": true,
+  "measures": [
+    "eff_conv1 (3/16)",
+    "eff_conv2 (6/32)",
+    "eff_fc (26/128)"
+  ]
+}

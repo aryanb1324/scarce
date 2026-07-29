@@ -16,6 +16,7 @@ from architecture.baseline import SmallCNN
 from architecture.modules.kwta import KWinnersTakeAll
 from architecture.modules.kwta_v2 import KWinnersTakeAllV2
 from architecture.modules.randk import RandomKChannel, StructuredDropout
+from architecture.modules.randk_matched import RandomKMatchedChannel
 
 
 def build_dense_model(num_classes: int = 10) -> nn.Module:
@@ -76,6 +77,27 @@ def build_randk_model(num_classes: int = 10, k: float = 0.2) -> nn.Module:
 
     def factory():
         return nn.Sequential(nn.ReLU(), RandomKChannel(k=k))
+
+    return SmallCNN(num_classes=num_classes, activation_fn=factory)
+
+
+def build_randk_matched_model(num_classes: int = 10, k: float = 0.2) -> nn.Module:
+    """
+    Stage 2b CONTROL, replacing `build_randk_model` as the valid one.
+
+    `build_randk_model` matched `build_kwta_v2_model(dim="channel")` on NOMINAL k
+    but not on surviving signal: 26.0 live FC units for kWTA against 7.6 for
+    random-k, because random selection lands on post-ReLU zeros and top-k cannot.
+    So the Stage 2 gap mixes "random instead of competitive" with "3.4x sparser."
+
+    This arm draws its k winners from among the nonzero entries, which makes the
+    live-unit count identical to kWTA's by construction. Both arms are then
+    identical in every respect except whether the surviving subset is chosen by
+    magnitude or at random. See modules/randk_matched.py.
+    """
+
+    def factory():
+        return nn.Sequential(nn.ReLU(), RandomKMatchedChannel(k=k))
 
     return SmallCNN(num_classes=num_classes, activation_fn=factory)
 
