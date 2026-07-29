@@ -40,12 +40,32 @@ tool that measures whether it helps *you* is honest, and more useful.
 
 ## Install
 
+No clone needed — pip fetches it directly:
+
 ```bash
+pip install git+https://github.com/aryanb1324/scarce.git
+```
+
+Two things to know:
+
+- **Use a recent pip** (≥ 23, with setuptools ≥ 61). An old pip — e.g. the macOS
+  system pip 21.x — silently builds a broken package named `UNKNOWN-0.0.0` because
+  it can't read the project metadata. Run `pip install --upgrade pip` first if
+  unsure.
+- **`pip install scarce` (plain) does *not* install this.** It is not published to
+  PyPI, and "scarce" is a common enough word that the PyPI name may belong to
+  someone else. Only the `git+https` form above installs this package.
+
+To hack on it instead, clone and install editable:
+
+```bash
+git clone https://github.com/aryanb1324/scarce.git && cd scarce
 pip install -e .
 ```
 
 Depends only on `torch` and `numpy` — the statistics are implemented directly, so
-installing this doesn't drag in scipy.
+installing this doesn't drag in scipy. Installing adds only the `scarce` package to
+your environment (nothing generic like `data` or `architecture`).
 
 ## What you get back
 
@@ -130,6 +150,25 @@ completely separate, shape-adaptive implementation — **+1.70 vs +1.66** at 600
 labels and **+1.91 vs +1.58** at 300, both within the paired standard error.
 Run `python -m examples.mnist_low_data` to check it yourself.
 
+### What the sparse mechanism is actually worth
+
+An early control suggested the input-dependent competition in kWTA beat a
+same-sparsity random baseline by ~13 points. That control was confounded: it
+matched kWTA on *nominal* selected count but kept ~3.4× fewer live units (random
+selection lands on post-ReLU zeros; top-k can't). A properly sparsity-matched
+control (Stage 2b, 8 seeds, paired) settles it:
+
+- The competition is **real** — kWTA beats the matched random control by **+2.08
+  pts at 300 labels and +2.42 at 600, 8/8 seeds both** (p ≈ 0.003 / 0.0003).
+- But it's **~2 points, not ~13**. About 84% of that old headline was a pure
+  sparsity artifact, not competition.
+- And **~2 pts is an upper bound**: the matched control hit the training-step cap
+  (still improving when scored), so part of its deficit is undertraining, not
+  random selection. A higher-cap rerun is the outstanding task.
+
+The honest headline of this project is the *method* — three self-caught confounds,
+including this one — not the size of the effect.
+
 ## API
 
 ```python
@@ -138,7 +177,11 @@ scarce.fit(
     x_val=None, y_val=None,    # omitted -> stratified split held out of train
     x_test=None, y_test=None,  # recommended: the only unbiased final number
     seeds=5,                   # below 5, the rule will usually decline to call one
-    candidates=None,           # override the arms; must include a 'dense' reference
+    candidates=None,           # override the mechanism arms; must include 'dense'
+    architectures=None,        # None: mechanisms only. "default"/"full"/<seq>: also
+                               #   search capacity, depth, and a linear baseline
+    budget=None,               # None: run every arm at `seeds`. "quick"/"standard"/
+                               #   "thorough": two-stage screen-then-confirm search
     include_controls=False,    # add diagnostic arms (randk)
     config=TrainConfig(),      # max_steps, patience, lr, batch_size
 )
@@ -147,8 +190,36 @@ scarce.fit(
 `SearchResult` gives you `.winner`, `.model`, `.predict(x)`, `.arms` (per-arm
 paired statistics), `.cost`, `.test_acc`, and `.report()`.
 
+### Searching architecture, not just activation
+
+By default `fit` varies only the activation on one fixed CNN. At a few hundred
+labels, capacity is usually the *dominant* knob — a smaller network, or plain
+logistic regression, often wins — so `architectures=` opens that axis:
+
+```python
+scarce.fit(x, y, architectures="default", budget="standard")
+```
+
+`"default"` is a curated 12-arm space: five architectures (linear, narrow CNN,
+shallow CNN, the default CNN, wide CNN) crossed with the mechanisms. `"full"` is
+the complete cross product.
+
+Crossing axes multiplies training runs, so `budget` switches on a two-stage
+**screen-then-confirm** search: rank every arm on a few cheap seeds, then confirm
+only the survivors on *fresh, disjoint* seeds — and decide on those alone, so
+selection can't contaminate the test. Run counts on the 12-arm space:
+
+| budget | runs | conclusion strength |
+|---|---|---|
+| `quick` | 39 | 5-seed |
+| `standard` | 68 | 8-seed |
+| `thorough` | 160 | 20-seed |
+
+(Naive all-arms-at-full-seeds would be 60 / 96 / 240.)
+
 Adding a mechanism is one entry — an activation factory — in
-`scarce/mechanisms.py`. It is then automatically measured against dense under
+`scarce/mechanisms.py`; adding an architecture is one entry in
+`scarce/architectures.py`. Either is then measured against the reference under
 the same protocol as everything else.
 
 ## Worked example

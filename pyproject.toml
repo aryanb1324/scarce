@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scarce"
-version = "0.1.0"
+version = "0.2.0"
 description = "Measure which architecture actually helps on your low-data problem, instead of assuming one does."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -37,10 +37,12 @@ Homepage = "https://github.com/aryanb1324/scarce"
 Source = "https://github.com/aryanb1324/scarce"
 
 [tool.setuptools]
-# `scarce` imports the mechanism modules from `architecture.modules`, so the
-# research package ships with the library rather than being duplicated into it.
-# One source of truth for every layer.
-packages = ["scarce", "architecture", "architecture.modules", "data"]
+# Install ONLY the scarce package tree. The mechanism modules it needs at runtime
+# are vendored under scarce/_modules/ (byte-identical copies of the frozen
+# architecture/modules/ originals, guarded by tests/test_packaging.py). Shipping
+# `architecture` and `data` as top-level packages used to pollute the installing
+# user's namespace with those very generic names; it no longer does.
+packages = ["scarce", "scarce._modules"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
