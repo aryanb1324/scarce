@@ -1,11 +1,11 @@
-# aryanet
+# scarce
 
 **Find out which architecture actually helps on your low-data problem — instead of trusting one that helped on someone else's.**
 
 ```python
-import aryanet
+import scarce
 
-result = aryanet.fit(x_train, y_train, x_test=x_test, y_test=y_test)
+result = scarce.fit(x_train, y_train, x_test=x_test, y_test=y_test)
 print(result.report())
 predictions = result.predict(x_new)
 ```
@@ -53,7 +53,7 @@ Real output, 600 MNIST labels, 5 seeds:
 
 ```
 ==========================================================================
-ARYANET SEARCH -- paired delta vs dense, percentage points
+SCARCE SEARCH -- paired delta vs dense, percentage points
 ==========================================================================
 600 training / 5000 validation examples, 5 seeds
 
@@ -100,7 +100,7 @@ flatter its own mechanism, and that is precisely what the rule prevents.
 
 ## Why the protocol matters more than the mechanism
 
-Every rule in `aryanet/protocol.py` exists because breaking it produced a wrong
+Every rule in `scarce/protocol.py` exists because breaking it produced a wrong
 answer in this project's own history:
 
 - **Train to convergence, never fixed epochs.** Holding epochs fixed while the
@@ -133,7 +133,7 @@ Run `python -m examples.mnist_low_data` to check it yourself.
 ## API
 
 ```python
-aryanet.fit(
+scarce.fit(
     x_train, y_train,          # (N,C,H,W) images or (N,F) tabular; numpy or torch
     x_val=None, y_val=None,    # omitted -> stratified split held out of train
     x_test=None, y_test=None,  # recommended: the only unbiased final number
@@ -148,7 +148,7 @@ aryanet.fit(
 paired statistics), `.cost`, `.test_acc`, and `.report()`.
 
 Adding a mechanism is one entry — an activation factory — in
-`aryanet/mechanisms.py`. It is then automatically measured against dense under
+`scarce/mechanisms.py`. It is then automatically measured against dense under
 the same protocol as everything else.
 
 ## Worked example

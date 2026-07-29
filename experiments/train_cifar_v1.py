@@ -20,7 +20,7 @@ changed here is THE DATASET. Everything else is held at the recorded values:
     train-to-convergence with best-on-validation selection, paired per-seed
     deltas, identical batch sequence across arms at a given seed.
 
-The model comes from `aryanet.nets.build_net`, not `architecture/baseline.py`.
+The model comes from `scarce.nets.build_net`, not `architecture/baseline.py`.
 baseline.py is frozen AND hardcoded to 1x28x28, so it physically cannot take a
 3-channel input; `build_net` keeps the structure the research validated (two conv
 blocks, one 128-unit hidden FC layer, an activation factory swapped in at every
@@ -166,7 +166,7 @@ import torch.nn as nn
 
 from architecture.modules.kwta_v2 import KWinnersTakeAllV2
 from architecture.modules.randk import StructuredDropout
-from aryanet.nets import build_net
+from scarce.nets import build_net
 from data.cifar10 import (
     assert_disjoint,
     load_cifar10_tensors,
@@ -596,7 +596,7 @@ def main():
                shots_per_class=SHOTS_PER_CLASS, seeds=SEEDS,
                max_steps=MAX_STEPS, eval_every=EVAL_EVERY, patience=PATIENCE,
                batch_size=BATCH_SIZE, lr=LR, selection="best-on-validation",
-               model_builder="aryanet.nets.build_net", device=str(DEVICE),
+               model_builder="scarce.nets.build_net", device=str(DEVICE),
                quick=QUICK, pilot=PILOT)
     with open(os.path.join(run_dir, "config.json"), "w") as f:
         json.dump(cfg, f, indent=2)

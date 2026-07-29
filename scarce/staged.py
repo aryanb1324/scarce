@@ -102,7 +102,7 @@ from __future__ import annotations
 
 from typing import Dict, List, NamedTuple, Optional, Sequence, Union
 
-from aryanet.stats import Paired
+from scarce.stats import Paired
 
 #: Arm-name column width. `cnn_narrow/kwta_channel_k0.2` is 28 characters, and a
 #: table whose columns shift when a name overflows is a table people misread.

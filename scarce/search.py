@@ -1,5 +1,5 @@
 """
-`aryanet.fit` -- measure what actually helps on YOUR data, then use that.
+`scarce.fit` -- measure what actually helps on YOUR data, then use that.
 
 The library does not assert that sparse activations help you. On the one dataset
 where this has been measured properly, channel-wise kWTA beat a dense baseline by
@@ -20,12 +20,12 @@ TWO SEARCH AXES
                 `architectures="default"`. At a few hundred labels this is
                 usually the DOMINANT knob, and "train a smaller network" or "use
                 logistic regression" are answers the mechanism axis alone cannot
-                reach. See `aryanet/architectures.py`.
+                reach. See `scarce/architectures.py`.
 
 Crossing the axes multiplies runs, so `budget=` switches on a two-stage
 screen-then-confirm search: rank every arm on cheap seeds, then confirm the
 survivors on FRESH, DISJOINT seeds and decide on those alone. The contamination
-argument, and what seed-splitting does not fix, is in `aryanet/staged.py`.
+argument, and what seed-splitting does not fix, is in `scarce/staged.py`.
 """
 
 from __future__ import annotations
@@ -35,10 +35,10 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Union
 import torch
 import torch.nn as nn
 
-from aryanet.architectures import Arm, Architecture, resolve_arms
-from aryanet.mechanisms import Candidate, control_candidates
-from aryanet.nets import count_parameters
-from aryanet.protocol import (
+from scarce.architectures import Arm, Architecture, resolve_arms
+from scarce.mechanisms import Candidate, control_candidates
+from scarce.nets import count_parameters
+from scarce.protocol import (
     Normalizer,
     TrainConfig,
     as_float_tensor,
@@ -47,7 +47,7 @@ from aryanet.protocol import (
     stratified_split,
     train_to_convergence,
 )
-from aryanet.staged import (
+from scarce.staged import (
     NAME_W,
     Budget,
     Stage,
@@ -57,7 +57,7 @@ from aryanet.staged import (
     resolve_budget,
     screen,
 )
-from aryanet.stats import Decision, Paired, decide, paired_stats, seeds_needed
+from scarce.stats import Decision, Paired, decide, paired_stats, seeds_needed
 
 
 class SearchResult(NamedTuple):
@@ -129,7 +129,7 @@ def fit(x_train: Any, y_train: Any,
       budget: `"quick"`, `"standard"`, `"thorough"`, or a `Budget`. Switches on
         the two-stage screen-then-confirm search, whose confirming stage uses
         seeds disjoint from the screen so selection cannot contaminate the test
-        (`aryanet/staged.py`). Costs, on the 12-arm space:
+        (`scarce/staged.py`). Costs, on the 12-arm space:
             quick     39 runs, a 5-seed conclusion  (naive: 60)
             standard  68 runs, an 8-seed conclusion (naive: 96)
             thorough  160 runs, a 20-seed claim     (naive: 240)
@@ -181,7 +181,7 @@ def fit(x_train: Any, y_train: Any,
     bud = resolve_budget(budget) if budget is not None else None
 
     if verbose:
-        print("aryanet: {} train / {} val, shape {}, {} classes".format(
+        print("scarce: {} train / {} val, shape {}, {} classes".format(
             xtr.shape[0], xva.shape[0], input_shape, num_classes))
         if bud is None:
             print("         {} arms x {} seeds = {} runs, device={}".format(
@@ -373,7 +373,7 @@ def _format_report(r: SearchResult) -> str:
     lines = []
     add = lines.append
     add("=" * 78)
-    add("ARYANET SEARCH -- paired delta vs {}, percentage points".format(
+    add("SCARCE SEARCH -- paired delta vs {}, percentage points".format(
         r.reference))
     add("=" * 78)
     add("{} training / {} validation examples".format(r.n_train, r.n_val))

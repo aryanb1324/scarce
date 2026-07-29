@@ -18,8 +18,8 @@ import numpy as np
 import pytest
 import torch
 
-import aryanet
-from aryanet.architectures import (
+import scarce
+from scarce.architectures import (
     CNN,
     CNN_NARROW,
     CNN_WIDE,
@@ -31,10 +31,10 @@ from aryanet.architectures import (
     default_arms,
     resolve_arms,
 )
-from aryanet.mechanisms import control_candidates, default_candidates
-from aryanet.nets import build_cnn, build_linear, build_net, count_parameters
-from aryanet.protocol import TrainConfig
-from aryanet.staged import (
+from scarce.mechanisms import control_candidates, default_candidates
+from scarce.nets import build_cnn, build_linear, build_net, count_parameters
+from scarce.protocol import TrainConfig
+from scarce.staged import (
     BUDGETS,
     Budget,
     contamination_check,
@@ -42,7 +42,7 @@ from aryanet.staged import (
     resolve_budget,
     screen,
 )
-from aryanet.stats import Paired, decide, paired_stats
+from scarce.stats import Paired, decide, paired_stats
 
 
 # ============================================================================
@@ -281,7 +281,7 @@ def test_bonferroni_at_many_arms_costs_a_real_but_bounded_amount():
     is the intuitive belief and it is wrong -- which is the whole reason the
     architecture axis is affordable at all.
     """
-    from aryanet.stats import t_pvalue
+    from scarce.stats import t_pvalue
 
     def min_effect(n_tested, sd=0.87, n=8):
         lo, hi = 0.0, 40.0
@@ -572,7 +572,7 @@ TINY = TrainConfig(max_steps=60, eval_every=20, patience=2, batch_size=32)
 
 def test_staged_fit_runs_and_decides_only_on_confirming_seeds():
     x, y = _toy()
-    r = aryanet.fit(x, y, architectures="default",
+    r = scarce.fit(x, y, architectures="default",
                     budget=Budget("tiny", screen_seeds=2, keep=2, confirm_seeds=5),
                     config=TINY, val_per_class=20, verbose=False)
     assert r.reference == "cnn/dense"
@@ -593,7 +593,7 @@ def test_staged_fit_runs_and_decides_only_on_confirming_seeds():
 
 def test_staged_fit_screens_out_arms_and_says_which():
     x, y = _toy()
-    r = aryanet.fit(x, y, architectures="default",
+    r = scarce.fit(x, y, architectures="default",
                     budget=Budget("tiny", screen_seeds=2, keep=2, confirm_seeds=5),
                     config=TINY, val_per_class=20, verbose=False)
     assert len(r.eliminated) == 9
@@ -609,7 +609,7 @@ def test_report_renders_and_states_the_parameter_cost():
     able to tell a capacity effect from a mechanism effect.
     """
     x, y = _toy()
-    r = aryanet.fit(x, y, architectures="default",
+    r = scarce.fit(x, y, architectures="default",
                     budget=Budget("tiny", screen_seeds=2, keep=2, confirm_seeds=5),
                     config=TINY, val_per_class=20, verbose=False)
     text = r.report()
@@ -623,7 +623,7 @@ def test_report_renders_and_states_the_parameter_cost():
 def test_single_stage_fit_is_unchanged_when_no_budget_is_given():
     """The original API path must not have moved under existing callers."""
     x, y = _toy()
-    r = aryanet.fit(x, y, seeds=2, config=TINY, val_per_class=20, verbose=False)
+    r = scarce.fit(x, y, seeds=2, config=TINY, val_per_class=20, verbose=False)
     assert r.reference == "dense"
     assert r.stages == [] and r.eliminated == []
     assert {a.name for a in r.arms} == {c.name for c in default_candidates()}
@@ -640,7 +640,7 @@ def test_the_winner_that_is_returned_is_the_model_that_was_trained():
     architecture and can predict.
     """
     x, y = _toy()
-    r = aryanet.fit(x, y, architectures="default",
+    r = scarce.fit(x, y, architectures="default",
                     budget=Budget("tiny", screen_seeds=2, keep=2, confirm_seeds=5),
                     config=TINY, val_per_class=20, verbose=False)
     arch = r.winner.split("/")[0]
@@ -656,7 +656,7 @@ def test_a_linear_only_space_still_produces_a_reference_and_an_answer():
     into a search with no reference to measure against.
     """
     x, y = _toy()
-    r = aryanet.fit(x, y, architectures=[LINEAR], seeds=2, config=TINY,
+    r = scarce.fit(x, y, architectures=[LINEAR], seeds=2, config=TINY,
                     val_per_class=20, verbose=False)
     assert r.reference == "cnn/dense"
     assert {a.name for a in r.arms} == {"cnn/dense", "linear/dense"}

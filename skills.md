@@ -338,7 +338,7 @@ version.
 ### 2026-07-28 — "Which arm won" needs the head-to-head test, not two deltas
 ### against the reference
 
-Building `aryanet` surfaced a gap that the experiment scripts have had all along.
+Building `scarce` surfaced a gap that the experiment scripts have had all along.
 Every run reports each arm's paired delta *against dense*, and the arm with the
 biggest delta gets called the winner. That is not the same question.
 

@@ -58,8 +58,8 @@ from typing import Any, Callable, List, NamedTuple, Optional, Sequence
 
 import torch.nn as nn
 
-from aryanet.mechanisms import Candidate, default_candidates
-from aryanet.nets import Net, build_cnn, build_linear, build_net
+from scarce.mechanisms import Candidate, default_candidates
+from scarce.nets import Net, build_cnn, build_linear, build_net
 
 #: The architecture every delta is measured against: the frozen research stack.
 #: Changing this would make new results incomparable with every recorded run.

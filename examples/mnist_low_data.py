@@ -1,11 +1,11 @@
 """
 Worked example, and the library's reproduction check.
 
-Runs `aryanet.fit` on MNIST at 300 and 600 labels -- the budgets where the
+Runs `scarce.fit` on MNIST at 300 and 600 labels -- the budgets where the
 research measured channel-wise kWTA at +1.58 and +1.66 points over dense (8
 seeds, paired, experiments/results/20260728_151333_stage2_control).
 
-It doubles as a regression test on the library layer. `aryanet` reimplements the
+It doubles as a regression test on the library layer. `scarce` reimplements the
 protocol against a shape-adaptive network rather than the frozen `SmallCNN`, so
 if the library's numbers do not land near the recorded ones, the library is
 wrong -- not the record.
@@ -28,8 +28,8 @@ import os
 
 import torch
 
-import aryanet
-from aryanet import TrainConfig
+import scarce
+from scarce import TrainConfig
 from data.mnist_v2 import load_mnist_tensors, stratified_subset, train_val_split
 
 QUICK = os.environ.get("QUICK") == "1"
@@ -56,7 +56,7 @@ def main():
             n_labels, shots, RECORDED[n_labels]))
         print("#" * 74 + "\n")
 
-        result = aryanet.fit(
+        result = scarce.fit(
             x_tr[sub].unsqueeze(1), y_tr[sub],
             x_val=x_val, y_val=y_val,
             x_test=x_test, y_test=y_test,

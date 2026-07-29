@@ -1,4 +1,4 @@
-"""Unit tests for the aryanet library layer.
+"""Unit tests for the scarce library layer.
 
 Tiny toy tensors only -- these check shapes, statistics, and the decision rule's
 refusals, not model quality (tests/skills.md).
@@ -9,10 +9,10 @@ import math
 import pytest
 import torch
 
-import aryanet
-from aryanet.nets import build_net
-from aryanet.protocol import Normalizer, as_float_tensor, stratified_split
-from aryanet.stats import decide, paired_stats, seeds_needed, t_pvalue
+import scarce
+from scarce.nets import build_net
+from scarce.protocol import Normalizer, as_float_tensor, stratified_split
+from scarce.stats import decide, paired_stats, seeds_needed, t_pvalue
 
 
 # ------------------------------- shape adaptation ----------------------------
@@ -40,7 +40,7 @@ def test_penultimate_is_hookable_and_feeds_the_head():
 
 
 def test_every_mechanism_builds_and_backprops():
-    for cand in aryanet.default_candidates() + aryanet.control_candidates():
+    for cand in scarce.default_candidates() + scarce.control_candidates():
         net = build_net((1, 10, 10), 4, cand.factory)
         loss = net(torch.randn(6, 1, 10, 10)).sum()
         loss.backward()
@@ -210,10 +210,10 @@ def test_requires_a_dense_reference():
     """
     x, y = torch.randn(8, 3), torch.tensor([0, 1] * 4)
     with pytest.raises(ValueError, match="dense"):
-        aryanet.fit(x, y, x_val=x, y_val=y, seeds=1,
-                    candidates=[aryanet.default_candidates()[1]], verbose=False)
+        scarce.fit(x, y, x_val=x, y_val=y, seeds=1,
+                    candidates=[scarce.default_candidates()[1]], verbose=False)
 
 
 def test_mismatched_x_and_y_is_caught_before_training():
     with pytest.raises(ValueError, match="rows"):
-        aryanet.fit(torch.randn(8, 3), torch.tensor([0, 1, 0]), verbose=False)
+        scarce.fit(torch.randn(8, 3), torch.tensor([0, 1, 0]), verbose=False)

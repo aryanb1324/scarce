@@ -1,8 +1,8 @@
 """
-aryanet -- pick a model that actually works when you don't have much data.
+scarce -- pick a model that actually works when you don't have much data.
 
-    import aryanet
-    result = aryanet.fit(x_train, y_train, x_test=x_test, y_test=y_test)
+    import scarce
+    result = scarce.fit(x_train, y_train, x_test=x_test, y_test=y_test)
     print(result.report())
     preds = result.predict(x_new)
 
@@ -27,34 +27,34 @@ that will hand you seed luck.
 TWO AXES, AND A COMPUTE BUDGET
 ------------------------------
     # mechanisms only, on the frozen research stack (the original behaviour)
-    aryanet.fit(x, y)
+    scarce.fit(x, y)
 
     # + capacity, depth, and a logistic-regression baseline: 12 arms, and a
     #   two-stage search so that costs 68 runs rather than 96
-    aryanet.fit(x, y, architectures="default", budget="standard")
+    scarce.fit(x, y, architectures="default", budget="standard")
 
 At a few hundred labels, capacity is usually the dominant knob and a SMALLER
 model often wins outright, so a search that varies only the activation cannot
 reach the right answer. `budget` switches on a screen-then-confirm search whose
 confirming stage uses seeds DISJOINT from the screen, and decides on those alone
 -- selecting arms and then testing them on the same runs is a garden-of-forking-
-paths error, and `aryanet/staged.py` documents both how that is avoided and the
+paths error, and `scarce/staged.py` documents both how that is avoided and the
 one thing seed-splitting cannot fix.
 """
 
-from aryanet.architectures import (
+from scarce.architectures import (
     Architecture,
     Arm,
     cross,
     default_architectures,
     default_arms,
 )
-from aryanet.mechanisms import Candidate, control_candidates, default_candidates
-from aryanet.nets import build_cnn, build_linear, build_net, count_parameters
-from aryanet.protocol import Normalizer, TrainConfig, stratified_split
-from aryanet.search import SearchResult, fit
-from aryanet.staged import BUDGETS, Budget, screen
-from aryanet.stats import Paired, decide, paired_stats, seeds_needed
+from scarce.mechanisms import Candidate, control_candidates, default_candidates
+from scarce.nets import build_cnn, build_linear, build_net, count_parameters
+from scarce.protocol import Normalizer, TrainConfig, stratified_split
+from scarce.search import SearchResult, fit
+from scarce.staged import BUDGETS, Budget, screen
+from scarce.stats import Paired, decide, paired_stats, seeds_needed
 
 __version__ = "0.2.0"
 

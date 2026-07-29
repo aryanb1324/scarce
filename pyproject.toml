@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aryanet"
+name = "scarce"
 version = "0.1.0"
 description = "Measure which architecture actually helps on your low-data problem, instead of assuming one does."
 readme = "README.md"
@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Deliberately minimal. The statistics are implemented in `aryanet/stats.py`
+# Deliberately minimal. The statistics are implemented in `scarce/stats.py`
 # rather than pulled from scipy, so installing this does not drag in a
 # scientific stack.
 dependencies = [
@@ -33,14 +33,14 @@ examples = ["torchvision>=0.14"]
 dev = ["pytest>=7"]
 
 [project.urls]
-Homepage = "https://github.com/aryanb/aryanet"
-Source = "https://github.com/aryanb/aryanet"
+Homepage = "https://github.com/aryanb/scarce"
+Source = "https://github.com/aryanb/scarce"
 
 [tool.setuptools]
-# `aryanet` imports the mechanism modules from `architecture.modules`, so the
+# `scarce` imports the mechanism modules from `architecture.modules`, so the
 # research package ships with the library rather than being duplicated into it.
 # One source of truth for every layer.
-packages = ["aryanet", "architecture", "architecture.modules", "data"]
+packages = ["scarce", "architecture", "architecture.modules", "data"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
