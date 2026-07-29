@@ -30,7 +30,13 @@ dependencies = [
 [project.optional-dependencies]
 # Only the MNIST example and the research experiments need torchvision.
 examples = ["torchvision>=0.14"]
-dev = ["pytest>=7"]
+# torchvision is a TEST dependency, not just an example one: tests/test_sampling
+# and tests/test_cifar10 import data.mnist_v2 / data.cifar10, which import
+# torchvision at module load (even though the tests themselves use synthetic
+# tensors and never download). Without it here, `pip install .[dev] && pytest`
+# fails at collection on any machine lacking a global torchvision -- which is
+# exactly how the first CI run failed.
+dev = ["pytest>=7", "torchvision>=0.14"]
 
 [project.urls]
 Homepage = "https://github.com/aryanb1324/scarce"
