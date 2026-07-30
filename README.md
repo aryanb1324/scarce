@@ -21,24 +21,43 @@ network — and hands you one.
 
 ## The claim this library does *not* make
 
-It does not ship a magic data-efficient architecture. Here is the actual evidence
-behind the sparse mechanism it includes, measured on MNIST, paired, 8 seeds:
+It does not ship a magic data-efficient architecture. It ships the measuring.
 
-| labels | kWTA vs dense | verdict |
+The sparse mechanism this project was built to investigate (channel-wise kWTA)
+looked good on MNIST — and then **failed its own pre-registered gate on natural
+images.** Both results, paired, same protocol:
+
+| dataset | 300 labels | 600 labels |
 |---|---|---|
-| 100 | −0.06 ± 0.31 (20 seeds) | nothing |
-| 300 | **+1.58**, 8/8 seeds | real — but **tied by ordinary dropout** (−0.11, n.s.) |
-| 600 | **+1.66**, 8/8 seeds | real, and beats dropout (+1.01) |
-| 3,000 | +0.19 | nothing |
+| MNIST (8 seeds) | **+1.58** | **+1.66** |
+| CIFAR-10 (3 seeds) | **−1.57** | **−1.61** |
 
-So: a ~1.6-point effect, in a narrow label window, on one dataset that saturates
-near 99% and flatters regularizers of every kind, and at one of those two budgets
-you could have gotten the same result from `nn.Dropout2d`. The mechanism itself
-isn't novel either — channel-wise kWTA is `local=True` in `nupic.torch`.
+On MNIST it helps by ~1.6 points. On CIFAR-10 it *costs* ~1.6 points, with every
+seed agreeing in sign at both budgets. Ordinary `Dropout2d` does worse still on
+CIFAR (−6.3 / −9.5). The most likely reading is that channel-wise competition
+discards information natural images carry — colour, texture, low-contrast
+background structure — that MNIST simply does not contain.
 
-**That is exactly why the library searches instead of asserting.** A fixed
-"data-efficient architecture" shipped on this evidence would be an overclaim. A
-tool that measures whether it helps *you* is honest, and more useful.
+That outcome was written down as a falsifiable branch *before* the run, and it
+fired. It is reported here as the headline rather than a footnote, because the
+whole point of pre-registering a gate is that it is allowed to close.
+
+Two caveats, both registered in advance and still binding: the CIFAR runs are
+**3 seeds** — at 600 labels the reversal is resolved (−1.61 at sd 0.38, ~7× its
+standard error), but at 300 labels sd is 0.88, so 3 seeds cannot resolve a 1-point
+effect there and the direction is suggestive rather than settled. And CIFAR at
+these budgets is a ~33–38% accuracy regime where MNIST was at 90%+, so *"reverses
+at matched label count"* and *"reverses in a low-accuracy regime"* are not
+separable by this run.
+
+**This is exactly why the library searches instead of asserting.** A mechanism
+that reverses sign between two datasets is not a prior you should ship as a
+default — it is a hypothesis you should *test on your own data*. That is what
+`fit` does, and it is why the tool remains useful even though the mechanism that
+motivated it did not generalize.
+
+(The mechanism isn't novel either — channel-wise kWTA is `local=True` in
+`nupic.torch`.)
 
 ## Install
 
@@ -54,9 +73,11 @@ Two things to know:
   system pip 21.x — silently builds a broken package named `UNKNOWN-0.0.0` because
   it can't read the project metadata. Run `pip install --upgrade pip` first if
   unsure.
-- **`pip install scarce` (plain) does *not* install this.** It is not published to
-  PyPI, and "scarce" is a common enough word that the PyPI name may belong to
-  someone else. Only the `git+https` form above installs this package.
+- **On PyPI:** publishing is wired up (Trusted Publishing, fires on a GitHub
+  Release), but **no release has been cut yet**. Until one is, plain
+  `pip install scarce` will not get this package — use the `git+https` form
+  above. Once the first release lands, `pip install scarce` works and this note
+  should be deleted.
 
 To hack on it instead, clone and install editable:
 
@@ -152,7 +173,7 @@ completely separate, shape-adaptive implementation — **+1.70 vs +1.66** at 600
 labels and **+1.91 vs +1.58** at 300, both within the paired standard error.
 Run `python -m examples.mnist_low_data` to check it yourself.
 
-### What the sparse mechanism is actually worth
+### What the sparse mechanism is actually worth (on MNIST)
 
 An early control suggested the input-dependent competition in kWTA beat a
 same-sparsity random baseline by ~13 points. That control was confounded: it
@@ -160,16 +181,21 @@ matched kWTA on *nominal* selected count but kept ~3.4× fewer live units (rando
 selection lands on post-ReLU zeros; top-k can't). A properly sparsity-matched
 control (Stage 2b, 8 seeds, paired) settles it:
 
-- The competition is **real** — kWTA beats the matched random control by **+2.08
-  pts at 300 labels and +2.42 at 600, 8/8 seeds both** (p ≈ 0.003 / 0.0003).
+- The competition does do **real work** — kWTA beats the matched random control by
+  **+2.08 pts at 300 labels and +2.42 at 600, 8/8 seeds both** (p ≈ 0.003 / 0.0003).
 - But it's **~2 points, not ~13**. About 84% of that old headline was a pure
   sparsity artifact, not competition.
 - And **~2 pts is an upper bound**: the matched control hit the training-step cap
   (still improving when scored), so part of its deficit is undertraining, not
   random selection. A higher-cap rerun is the outstanding task.
 
-The honest headline of this project is the *method* — three self-caught confounds,
-including this one — not the size of the effect.
+**Read all of that as MNIST-scoped.** "The competition is doing something" and
+"the competition is useful" are different claims, and CIFAR-10 answers the second
+one *no*: the same mechanism that beats a random control by 2 points on MNIST
+loses 1.6 points to a plain dense net on natural images.
+
+The honest headline of this project is the *method* — four self-caught confounds
+and one closed gate — not the size of the effect.
 
 ## API
 
@@ -203,8 +229,42 @@ scarce.fit(x, y, architectures="default", budget="standard")
 ```
 
 `"default"` is a curated 12-arm space: five architectures (linear, narrow CNN,
-shallow CNN, the default CNN, wide CNN) crossed with the mechanisms. `"full"` is
-the complete cross product.
+shallow CNN, the default CNN, wide CNN) crossed with the mechanisms. `"full"`
+adds the pretrained backbone below.
+
+### The pretrained baseline — probably the strongest arm here
+
+For a few hundred *natural* images, the honestly-best move is usually not any
+mechanism in this library: it is a pretrained backbone. `"full"` includes one, as
+a frozen ResNet-18 linear probe (backbone weights frozen and run under `no_grad`;
+only a fresh linear head trains):
+
+```bash
+pip install "scarce[pretrained]"     # needs torchvision
+```
+
+```python
+scarce.fit(x, y, architectures="full", budget="standard")
+```
+
+Three deliberate choices, so it can't quietly flatter itself:
+
+- **It is opt-in, not in `"default"`.** It pulls an optional dependency and a
+  ~45 MB weights download; `"default"` stays lightweight, torchvision-free and
+  offline.
+- **It carries the *highest* complexity rank**, so on an unresolvable tie it
+  *loses* to a small CNN or logistic regression. It has to strictly win to be
+  recommended.
+- **It is never paired with a mechanism** (`supports_mechanism=False`): a frozen
+  backbone has no activation site for kWTA or dropout, so an arm named
+  `pretrained/kwta` would misdescribe what was measured.
+
+Cost, stated plainly: **~26 s/run vs ~0.6 s** for the small CNNs, because the
+frozen backbone re-runs every training step. Caching its features once (they never
+change) is the obvious optimization and is not implemented yet.
+
+A tool that cannot lose to a pretrained baseline isn't measuring — it's
+advertising. This is the arm that lets it lose.
 
 Crossing axes multiplies training runs, so `budget` switches on a two-stage
 **screen-then-confirm** search: rank every arm on a few cheap seeds, then confirm
@@ -243,9 +303,10 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
-The suite is **148 tests** and runs in ~30s on CPU — unit tests on toy tensors
-plus end-to-end `fit()` runs; no dataset downloads, no network. CI runs it on
-Python 3.9 on every push (badge up top).
+The suite is **185 tests** and runs in ~55s on CPU — unit tests on toy tensors
+plus end-to-end `fit()` runs; no dataset downloads, no network (the pretrained
+tests build a real ResNet-18 with `weights=None`, so they never fetch weights).
+CI runs it on Python 3.9 on every push (badge up top).
 
 The install path itself is verified, not assumed. Each of these was run against a
 clean environment:
@@ -260,15 +321,22 @@ clean environment:
 
 ## Honest limitations
 
-- **Validated on MNIST only.** The gating question for the whole project is
-  CIFAR-10 under the identical protocol; it needs a GPU and has not been run.
-  Until it is, treat the built-in mechanisms as *candidates worth measuring*, not
-  as things known to help.
-- **The mechanism effect is real but small, and an upper bound.** A
-  sparsity-matched control (Stage 2b) shows the input-dependent competition beats
-  a random-selection baseline by ~2 points, 8/8 seeds — not the ~13 an earlier
+- **The built-in mechanisms are candidates, not recommendations.** kWTA helps on
+  MNIST and *hurts* on CIFAR-10 (see the top of this README). Treat every arm as
+  something to measure on your data, never as something known to help. The one
+  arm with a strong prior in its favour is the pretrained backbone — and it is
+  opt-in precisely so the tool doesn't assume your problem looks like ImageNet.
+- **CIFAR-10 evidence is a 3-seed pilot, not a full sweep.** Resolved at 600
+  labels, underpowered at 300. A 5-seed run is the outstanding task.
+- **CIFAR-100 is scaffolded but unrun.** The pipeline and a pre-registered
+  experiment exist (`experiments/train_cifar100_v1.py`) and its data-handling is
+  unit-tested, but the end-to-end run has not completed — the dataset host was
+  throttling to ~2.5 KB/s when it was attempted. No CIFAR-100 numbers are claimed.
+- **The competition effect on MNIST is ~2 points and an upper bound.** A
+  sparsity-matched control (Stage 2b) shows input-dependent selection beats a
+  random-selection baseline by ~2 points, 8/8 seeds — not the ~13 an earlier
   confounded control suggested, and even the ~2 is inflated by that control
-  hitting the step cap. See the section above and `architecture/skills.md`.
+  hitting the step cap. MNIST only. See `architecture/skills.md`.
 - **Search cost.** `arms × seeds` full training runs. Defaults are 4 × 5 = 20.
   That is the price of an answer you can trust; `TrainConfig` and `candidates`
   let you trade it down.
@@ -286,8 +354,13 @@ predictions, and the accumulated methodology live in:
   taught it. This is the project's central discipline.
 - `experiments/results/<timestamp>_<name>/` — every run, with config and commit
 
-Three pre-registered predictions have been falsified so far, and one recorded
-finding was retracted by a power run. That is the process working.
+Four pre-registered predictions have been falsified so far — including the
+central one, when CIFAR-10 reversed the MNIST effect — and one recorded finding
+was retracted by a power run after 20 seeds contradicted 5. Every one of those is
+still in the repo with the run that produced it.
+
+That is the process working, and it is the actual product. The mechanism was the
+hypothesis; the protocol is what survived.
 
 ## License
 
