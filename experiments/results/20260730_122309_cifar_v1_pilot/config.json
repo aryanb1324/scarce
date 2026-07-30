@@ -1,0 +1,35 @@
+{
+  "protocol": "cifar_v1_pilot",
+  "dataset": "cifar10",
+  "git_commit": "0cb0e45-dirty",
+  "arms": [
+    "dense",
+    "kwta_channel",
+    "dropout"
+  ],
+  "k": 0.2,
+  "input_shape": [
+    3,
+    32,
+    32
+  ],
+  "shots_per_class": [
+    30,
+    60
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "max_steps": 4000,
+  "eval_every": 100,
+  "patience": 12,
+  "batch_size": 64,
+  "lr": 0.001,
+  "selection": "best-on-validation",
+  "model_builder": "scarce.nets.build_net",
+  "device": "cpu",
+  "quick": false,
+  "pilot": true
+}
