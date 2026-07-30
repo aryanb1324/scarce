@@ -18,12 +18,17 @@ jobs:
           # PEP 604/585 syntax so it imports here. Test the version we ship for.
           python-version: "3.9"
 
-      - name: Install CPU-only torch
-        # The default Linux torch wheel bundles CUDA (~2 GB). The CPU wheel is a
-        # fraction of that and all these tests need -- they run on toy tensors.
+      - name: Install CPU-only torch + torchvision
+        # The default Linux torch wheel bundles CUDA (~2 GB); the CPU wheels are a
+        # fraction of that and all these tests need (toy tensors only). BOTH must
+        # come from the pytorch CPU index in the SAME command: torch from this
+        # index + torchvision from PyPI are built against different torch and do
+        # not interoperate ("operator torchvision::nms does not exist"). Pinning
+        # both here means the later `.[dev]` install sees torchvision already
+        # satisfied and does not pull a mismatched PyPI build.
         run: |
           python -m pip install --upgrade pip
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install package + test deps
         run: pip install ".[dev]"
