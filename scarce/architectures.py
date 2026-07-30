@@ -50,6 +50,15 @@ ARCHITECTURE dominates the tie-break and the mechanism only orders arms within
 one architecture. That ordering is the point: when a linear model ties the wide
 CNN with kWTA, the library must hand back the linear model. The reverse would be
 the exact overclaim it exists to prevent.
+
+`pretrained` is the one deliberate exception to "rank tracks parameter count". Its
+TRAINABLE footprint is tiny (~5k head params, smaller than `cnn_narrow`), but as
+an artifact it is the heaviest thing here: ~11.7M frozen params, an extra
+dependency, and a weights download. It is therefore ranked ABOVE `cnn_wide`
+(complexity 5, the largest), so a pretrained probe that only TIES a lighter arm
+loses the tie-break and is not recommended -- it must strictly win. Ranking it by
+its trainable params would have made a heavyweight download the tool's default
+tie-winner, which is backwards.
 """
 
 from __future__ import annotations
@@ -60,6 +69,7 @@ import torch.nn as nn
 
 from scarce.mechanisms import Candidate, default_candidates
 from scarce.nets import Net, build_cnn, build_linear, build_net
+from scarce.pretrained import build_pretrained
 
 #: The architecture every delta is measured against: the frozen research stack.
 #: Changing this would make new results incomparable with every recorded run.
@@ -90,6 +100,18 @@ def _cnn(channels: Sequence[int], hidden: int):
     def build(input_shape, num_classes, activation_fn=nn.ReLU):
         return build_cnn(input_shape, num_classes, activation_fn,
                          channels=channels, hidden=hidden)
+    return build
+
+
+def _pretrained(backbone="resnet18", image_size=64):
+    """A builder that ignores `activation_fn` -- a frozen backbone has no site for
+    a mechanism -- and binds the backbone choice. torchvision is imported lazily
+    inside `build_pretrained`, so referencing this builder costs nothing until an
+    arm is actually trained.
+    """
+    def build(input_shape, num_classes, activation_fn=None):
+        return build_pretrained(input_shape, num_classes,
+                                backbone=backbone, image_size=image_size)
     return build
 
 
@@ -141,9 +163,38 @@ CNN_WIDE = Architecture(
     4)
 
 
+PRETRAINED = Architecture(
+    "pretrained", _pretrained("resnet18"),
+    "Frozen ImageNet resnet18 backbone + a fresh linear head (a LINEAR PROBE, not "
+    "fine-tuning): only the ~5k-param head trains, the ~11.7M backbone params are "
+    "frozen. Needs torchvision (optional extra `scarce[pretrained]`) and a one-time "
+    "weights download. UNMEASURED in this repo, but at a few hundred real-world "
+    "images a pretrained probe is usually the strongest baseline -- included so "
+    "the search can recommend it, and can honestly LOSE to it.",
+    5, supports_mechanism=False)
+
+
 def default_architectures() -> List[Architecture]:
-    """All five shapes, simplest first."""
+    """The five lightweight core shapes, simplest first.
+
+    Deliberately excludes `PRETRAINED`: these are torchvision-free, download-free,
+    and tabular-capable, and every existing test iterates this list on the
+    assumption that building any of them is cheap and offline. `PRETRAINED` breaks
+    all three, so it lives in the `"full"` space (see `full_architectures`) and is
+    opt-in, never a silent dependency of the default search.
+    """
     return [LINEAR, CNN_NARROW, CNN_SHALLOW, CNN, CNN_WIDE]
+
+
+def full_architectures() -> List[Architecture]:
+    """The core shapes plus the pretrained-backbone probe.
+
+    This is what `architectures="full"` searches. `PRETRAINED` is appended last
+    and ranked highest-complexity, so on an unresolvable tie the decision rule
+    prefers any of the lighter arms -- a pretrained probe has to strictly BEAT the
+    field to be recommended, never merely match it.
+    """
+    return default_architectures() + [PRETRAINED]
 
 
 class Arm(NamedTuple):
@@ -273,7 +324,10 @@ def resolve_arms(candidates: Optional[Sequence[Candidate]],
                      results change under them.
       "default"   -- the curated 12-arm (architecture x mechanism) space.
       "full"      -- the complete cross product of every architecture with
-                     every mechanism (17 cells with the defaults).
+                     every mechanism, PLUS the frozen pretrained-backbone probe
+                     (18 cells with the defaults). The pretrained arm pulls in
+                     torchvision and a one-time weights download, so it is reached
+                     here and by an explicit list, never through `None`/`"default"`.
       a sequence  -- cross those architectures with the mechanisms.
     """
     mechs = list(candidates) if candidates is not None else default_candidates()
@@ -290,7 +344,7 @@ def resolve_arms(candidates: Optional[Sequence[Candidate]],
             return _reference_first(default_arms()
                                     + [_bind(CNN, c) for c in controls])
         if key == "full":
-            return cross(default_architectures(), mechs)
+            return cross(full_architectures(), mechs)
         raise ValueError(
             "architectures must be None, 'default', 'full', or a sequence of "
             "Architecture; got {!r}".format(architectures))

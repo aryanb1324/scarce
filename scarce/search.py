@@ -429,6 +429,10 @@ def _format_report(r: SearchResult) -> str:
     add("  Parameter count is listed because an architecture search deliberately")
     add("  varies model size: a delta here can be a capacity effect, not a")
     add("  mechanism effect, and you should be able to see which.")
+    if any(name.split("/")[0] == "pretrained" for name in r.cost):
+        add("  NOTE: the 'pretrained' arm trains only a linear head; its ~11.7M-")
+        add("  parameter ImageNet backbone is FROZEN and NOT counted above, so its")
+        add("  tiny param figure is the trainable head alone, not its real size.")
 
     add("")
     add("-" * 78)

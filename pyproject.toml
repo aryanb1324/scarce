@@ -30,6 +30,11 @@ dependencies = [
 [project.optional-dependencies]
 # Only the MNIST example and the research experiments need torchvision.
 examples = ["torchvision>=0.14"]
+# The pretrained-backbone arm (scarce/pretrained.py) loads a torchvision model
+# with ImageNet weights. torchvision is imported lazily inside the builder, so
+# core `scarce.fit()` runs without this extra; install it only to search the
+# pretrained arm. >=0.14 for the `weights=` API.
+pretrained = ["torchvision>=0.14"]
 # torchvision is a TEST dependency, not just an example one: tests/test_sampling
 # and tests/test_cifar10 import data.mnist_v2 / data.cifar10, which import
 # torchvision at module load (even though the tests themselves use synthetic

@@ -43,14 +43,17 @@ one thing seed-splitting cannot fix.
 """
 
 from scarce.architectures import (
+    PRETRAINED,
     Architecture,
     Arm,
     cross,
     default_architectures,
     default_arms,
+    full_architectures,
 )
 from scarce.mechanisms import Candidate, control_candidates, default_candidates
 from scarce.nets import build_cnn, build_linear, build_net, count_parameters
+from scarce.pretrained import build_pretrained
 from scarce.protocol import Normalizer, TrainConfig, stratified_split
 from scarce.search import SearchResult, fit
 from scarce.staged import BUDGETS, Budget, screen
@@ -80,12 +83,15 @@ __all__ = [
     "control_candidates",
     "Architecture",
     "Arm",
+    "PRETRAINED",
     "default_architectures",
+    "full_architectures",
     "default_arms",
     "cross",
     "build_net",
     "build_cnn",
     "build_linear",
+    "build_pretrained",
     "count_parameters",
     "Normalizer",
     "stratified_split",
